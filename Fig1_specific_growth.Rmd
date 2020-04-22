@@ -1,0 +1,80 @@
+---
+title: "spgrowth18figs"
+author: "Hannah Reich"
+date: "October 22, 2018"
+output: html_document
+---
+
+```{r}
+# Fig. 1. Specific growth rate
+# July 2019. Updated for manuscript submission to coauthors
+# Last updated Jan 2020 (to alter aspect ratio)
+
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/")
+
+# load packages
+library(ggplot2)
+library(cowplot)
+library(readxl)
+library(dplyr)
+library(reshape2)
+library(ggpubr)
+library(viridis)
+
+# read in the data
+growth <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx",
+                     sheet = "spgrowth_r")
+
+# the part of the data this script works with is the "slope" column. This represents specific growth (μ/day). Specific growth is calculated as "((Ln(ending cell density in exponential phase))-Ln(starting cell density in exponential phase)))/change in time" Reich ch1. Calculations of avg cell den/day by triplicate and LN values in "spgrowth_calc" sheet
+
+# make object of data 
+b <- growth %>% filter(
+  species %in% c("min", "psyg"),
+  ironconc %in% c("10", "50", "100"))
+
+# get the averages and standard deviation by treatment group
+bmean <- b %>% group_by(species, ironconc, temp) %>% summarise(mean = mean(slope), sd = sd(slope))
+bmean <- as.data.frame(bmean)
+
+# create a color blind palette
+cols <-c( "t26" = "#0072B2", "t28" = "#999999", "t30" = "#D55E00")
+labs <- c("26", "28", "30")
+
+# make species and iron concentration treatment factors so the labels are paper-ready
+bmean$species <- factor(bmean$species, levels = c("min", "psyg"))
+levels(bmean$species) <- c("B. minutum", "B. psygmophilum")
+
+# this converts total dissolved iron concentrations (nM Fe) into bioavailable iron concentrations (pM Fe'). Briefly, Fe' values indicate the fraction of the total dissolved [Fe] that remain bioavailable after the addition of EDTA
+bmean$ironconc <- factor(bmean$ironconc, levels =c("100", "50", "10"))
+levels(bmean$ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+bgrowth <- ggplot(bmean, aes(x=bmean$temp, y=mean, fill = bmean$temp)) + 
+  theme_bw() +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = labs) +
+  theme(axis.text.x = element_text(angle=0, vjust=0.5)) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=0.75, colour="black", position=position_dodge()) +
+  labs(x="Temperature (°C)", 
+       y=expression(bold(Specific~Growth~(mu~day^-1)))) + 
+  theme(axis.text = element_text(size=10)) + 
+  theme(axis.title = element_text(size=12, face = "bold")) +
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.title = element_text(size=10, face="bold")) +
+  theme(legend.title.align=0.5)  +
+  facet_grid(bmean$species ~ bmean$ironconc) +
+  theme(strip.text.x = element_text(size=12, margin = margin(.15, .15, .15, .15, "cm"))) +
+  theme(strip.text.y = element_text(size=10, face = "bold.italic",margin = margin(.15, .15, .15, .15, "cm")),
+        panel.grid = element_blank()) +
+  scale_fill_manual(values = cols, breaks = c("t26", "t28", "t30"), labels=c("26", "28", "30")) +
+  theme(legend.position = "none")
+
+# view the plot
+bgrowth
+
+# save the plot
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig1_specific_growth.pdf", bgrowth, base_aspect_ratio = 1.1)
+# illustrator edits: making sure 'mu' is formatted correctly
+
+```
+
