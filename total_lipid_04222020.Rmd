@@ -1,0 +1,95 @@
+---
+title: "lipid_v01232020"
+author: "Hannah Reich"
+date: "1/23/2020"
+output: html_document
+---
+
+Elise & Artemis Keister analysed abundance of lipid classes on the iron*heat cultures. this is the first pass at figs/stats.
+
+visualize total lipids per samples. script updated 4/22/2020 to remove non total lipid content data. the file with the lipid classes analysis is in ~/summer 2018/culture_lipids
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/summer 2018/culture_lipids/")
+
+# load packages
+library(readxl)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(ggpubr)
+library(cowplot)
+library(PMCMR)
+
+# read in the data
+tot <- read_excel("~/Desktop/PhD/summer 2018/culture_lipids/HR_cultures_lipid quant.xlsx", sheet = "for_R_total")
+tot <- as.data.frame(tot)
+
+# color palette
+cols <-c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+
+# make ironconc and temp factors
+tot$Temp <- as.factor(tot$Temp)
+tot$Ironconc <- as.factor(tot$Ironconc)
+tot$Species <- as.factor(tot$Species)
+tot$treatment_ID <- as.factor(tot$treatment_ID)
+
+# make levels fancy
+tot$Species <- factor(tot$Species, levels = c("min", "psyg"))
+levels(tot$Species) <- c("B. minutum", "B. psygmophilum")
+tot$Ironconc <- factor(tot$Ironconc, levels =c("100", "50", "10"))
+levels(tot$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+# box plot
+tot1 <- ggplot(data=tot, aes(x=Temp, y=total_lipid_no_outlier, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="Total lipid (mg/cell)", x=element_blank(), title = "Total lipid/cell") +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold.italic"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(angle=0),
+        axis.title = element_text(face = "bold"),
+        legend.position = "right") +
+  facet_grid(Species~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+tot1
+
+save_plot("lipid_cell.pdf", tot1, base_aspect_ratio = 1.6)
+
+### do the total lipid stats.
+
+# between species
+kruskal.test(tot$total_lipid, tot$Species)
+
+# within species
+bm <- dplyr::filter(tot, Species %in% c("B. minutum"))
+bp <- dplyr::filter(tot, Species %in% c("B. psygmophilum"))
+
+# normality tests
+shapiro.test(bm$total_lipid)
+shapiro.test(bp$total_lipid)
+
+# KW test
+kruskal.test(bm$total_lipid, bm$Temp)
+kruskal.test(bm$total_lipid, bm$Ironconc)
+kruskal.test(bp$total_lipid, bp$Temp)
+kruskal.test(bp$total_lipid, bp$Ironconc)
+
+# post hoc by iron
+posthoc.kruskal.dunn.test(total_lipid~Ironconc, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(total_lipid~Ironconc, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by temp
+posthoc.kruskal.dunn.test(total_lipid~Temp, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(total_lipid~Temp, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by treatment ID
+posthoc.kruskal.dunn.test(total_lipid~treatment_ID, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(total_lipid~treatment_ID, data = bp, p.adjust.methods = "fdr")
+
+```
+
+
