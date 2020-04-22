@@ -1,0 +1,260 @@
+---
+title: "Fig2_thru_3_nuts_per_cell_jan2020update"
+author: "Hannah Reich"
+date: "1/21/2020"
+output: html_document
+---
+
+script updated 4.22.2020 to only include necessary info for ms. original script (~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/NEW_fig2_thru_3_nutsPERcell_jan2020)
+```{r}
+# jan 21 2020.
+# remaking C/N/P per cell and metal/cell figures (other rmarkdowns were getting super crowded so made a new one)
+
+# set working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/")
+
+# load packages
+library(ggplot2)
+library(ggpubr)
+library(readxl)
+library(dplyr)
+library(reshape2)
+library(cowplot)
+
+# read in the metals (and phosphorus)
+metals <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/metallome_um3.xlsx", sheet = "formanova")
+# read in the poc and pon per cell
+metals <- as.data.frame(metals)
+cn <- read.csv("POCPON_cell_edit.csv", header = TRUE)
+cn <- as.data.frame(cn)
+
+# make the dataset rbind'able (i.e., make sure factor levels & colnames will match)
+colnames(cn) <- c("sampleID","TreatmentID", "Species", "Ironconc", "Temp", "POC", "PON")
+cn$sample_ID <- seq.int(nrow(cn))
+metals$Species <- factor(metals$Species, levels = c("m", "p"))
+levels(metals$Species) <- c("min", "psyg")
+cn$Ironconc <- factor(cn$Ironconc, levels =c("100", "50", "10"))
+levels(cn$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+metals$Ironconc <- factor(metals$Ironconc, levels =c("500", "250", "50"))
+levels(metals$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+# melt them and THEN rbind them (otherwise POC/PON triplicates get duplicated because icpms data has tech reps)
+cn_melt <- reshape2::melt(cn, id.vars=c("sampleID","TreatmentID", "Species", "Ironconc", "Temp", "sample_ID"), measure.vars=c("POC","PON"))
+metal_melt <- reshape2::melt(metals, id.vars = c("sample_ID", "Species", "Ironconc", "Temp", "TreatmentID", "sampleID"), measure.vars = c("Cobalt", "Copper", "Iron", "Manganese", "Nickel", "Zinc", "Phosphorus"))
+
+# rbind them together
+allnuts <- rbind(cn_melt, metal_melt)
+allnuts$Temp <- as.factor(allnuts$Temp)
+
+# separate macro (so lame) and micronutrients. If anyone actually reads this github and agrees trace metals are the coolest but macronutrients get a disproportionate amount of fame, please tweet "Trace metals are the coolest & they MATTER for coral-algal symbiosis #SoMetal @HannahGReich" and I will buy you ice cream (make sure to tag me).
+macro <- dplyr::filter(allnuts, variable %in% c("POC", "PON", "Phosphorus"))
+micro <- dplyr::filter(allnuts, variable %in% c("Iron", "Copper", "Manganese", "Cobalt", "Nickel", "Zinc"))
+
+### make a plot of the macronutrients
+# change species labels
+macro$Species <- factor(macro$Species, levels = c("min", "psyg"))
+levels(macro$Species) <- c("B. minutum", "B. psygmphilum")
+
+mac <- ggplot(data=macro, aes(x=Species, y=value, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="Nutrient/cell", x=element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(angle=15, vjust=1, hjust =1, face = "italic"),
+        axis.title = element_text(face = "bold"),
+        legend.position = "right") +
+  facet_grid(variable~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+mac
+
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig3_macronutrients.pdf", mac, base_aspect_ratio = 1.9)
+
+### best for last. metals!
+micro$Species <- factor(micro$Species, levels = c("min", "psyg"))
+levels(micro$Species) <- c("B. minutum", "B. psygmphilum")
+
+# option 1, all metals in boxplot form
+mic <- ggplot(data=micro, aes(x=Species, y=value, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  scale_y_continuous(labels = scales::scientific) +
+  labs(y="Metal/cell", x=element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        axis.text = element_text(size=6),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(size=6),
+        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
+        axis.title = element_text(face = "bold", size=8),
+        legend.position = "right",
+        panel.spacing = unit(0.25, "lines")) +
+  facet_grid(variable~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+mic
+
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option1_ALLBOX.pdf", mic, base_aspect_ratio = 1.6)
+
+# option 2, some metals in boxplot form. throw rest in supplement. Keep Iron, Manganese, Copper, Cobalt
+metals2 <- dplyr::filter(micro, variable %in% c("Iron", "Copper", "Manganese", "Cobalt"))
+metals2$variable = factor(metals2$variable, levels = c("Iron", "Copper", "Manganese", "Cobalt"))
+
+mic2 <- ggplot(data=metals2, aes(x=Species, y=value, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  scale_y_continuous(labels = scales::scientific) +
+  labs(y="Metal/cell", x=element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        axis.text = element_text(size=6),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(size=6),
+        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
+        axis.title = element_text(face = "bold", size=8),
+        legend.position = "right",
+        panel.spacing = unit(0.25, "lines")) +
+  facet_grid(variable~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+mic2
+
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option2_someBOX.pdf", mic2, base_aspect_ratio = 1.6)
+
+
+
+### split the metals up 3 (Fe, Cu, Mn) and 3 (Co, Ni, Zn)
+FeCuMn <- dplyr::filter(micro, variable %in% c("Iron", "Copper", "Manganese"))
+FeCuMn$variable = factor(FeCuMn$variable, levels = c("Iron", "Copper", "Manganese"))
+
+CoNiZn <- dplyr::filter(micro, variable %in% c("Cobalt", "Nickel", "Zinc"))
+CoNiZn$variable = factor(CoNiZn$variable, levels = c("Cobalt", "Nickel", "Zinc"))
+
+# first half box
+FeCuMn$Ironconc <- factor(FeCuMn$Ironconc, levels =c("500", "250", "50"))
+levels(FeCuMn$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+mic7 <- ggplot(data=FeCuMn, aes(x=Species, y=value, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  scale_y_continuous(labels = scales::scientific) +
+  labs(y="Metal/cell", x=element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        axis.text = element_text(size=6),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(size=6),
+        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
+        axis.title = element_text(face = "bold", size=8),
+        legend.position = "right",
+        panel.spacing = unit(0.25, "lines")) +
+  facet_grid(variable~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+mic7
+
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option7_someBOX.pdf", mic7, base_aspect_ratio = 1.6)
+
+# second half box
+CoNiZn$Ironconc <- factor(CoNiZn$Ironconc, levels =c("500", "250", "50"))
+levels(CoNiZn$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+mic8 <- ggplot(data=CoNiZn, aes(x=Species, y=value, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  scale_y_continuous(labels = scales::scientific) +
+  labs(y="Metal/cell", x=element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
+        axis.text = element_text(size=6),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(size=6),
+        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
+        axis.title = element_text(face = "bold", size=8),
+        legend.position = "right",
+        panel.spacing = unit(0.25, "lines")) +
+  facet_grid(variable~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+mic8
+
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option8_someBOX.pdf", mic8, base_aspect_ratio = 1.6)
+
+
+```
+
+have the stats in the same place
+```{r}
+library(PMCMR)
+
+metals$TreatmentID <- as.factor(metals$TreatmentID)
+cn$TreatmentID <- as.factor(cn$TreatmentID)
+metals$Temp <- as.factor(metals$Temp)
+cn$Temp <- as.factor(cn$Temp)
+metals$Ironconc <- as.factor(metals$Ironconc)
+cn$Ironconc <- as.factor(cn$Ironconc)
+
+# make the sp-specific objects
+min_phos <- filter(metals, Species %in% c("min"))
+min_cn <- filter(cn, Species %in% c("min"))
+psyg_phos <- filter(metals, Species %in% c("psyg"))
+psyg_cn <- filter(cn, Species %in% c("psyg"))
+
+### Phosphorus. 
+#data is normal but doing non-parametric stats to keep it consistent
+shapiro.test(min_phos$Phosphorus)
+shapiro.test(psyg_phos$Phosphorus)
+
+kruskal.test(min_phos$Phosphorus, min_phos$TreatmentID)
+kruskal.test(min_phos$Phosphorus, min_phos$Temp)
+kruskal.test(min_phos$Phosphorus, min_phos$Ironconc)
+kruskal.test(psyg_phos$Phosphorus, psyg_phos$TreatmentID)
+kruskal.test(psyg_phos$Phosphorus, psyg_phos$Temp)
+kruskal.test(psyg_phos$Phosphorus, psyg_phos$Ironconc)
+
+posthoc.kruskal.dunn.test(Phosphorus~TreatmentID, data = min_phos, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Phosphorus~TreatmentID, data = psyg_phos, p.adjust.method = "fdr")
+
+### PON 
+shapiro.test(min_cn$PON)
+shapiro.test(psyg_cn$PON)
+
+kruskal.test(min_cn$PON, min_cn$TreatmentID)
+kruskal.test(min_cn$PON, min_cn$Temp)
+kruskal.test(min_cn$PON, min_cn$Ironconc)
+
+kruskal.test(psyg_cn$PON, psyg_cn$TreatmentID)
+kruskal.test(psyg_cn$PON, psyg_cn$Temp)
+kruskal.test(psyg_cn$PON, psyg_cn$Ironconc)
+
+posthoc.kruskal.dunn.test(PON~TreatmentID, data = min_cn, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(PON~TreatmentID, data = psyg_cn, p.adjust.method = "fdr")
+
+### POC
+shapiro.test(min_cn$POC)
+shapiro.test(psyg_cn$POC)
+
+kruskal.test(min_cn$POC, min_cn$TreatmentID)
+kruskal.test(min_cn$POC, min_cn$Temp)
+kruskal.test(min_cn$POC, min_cn$Ironconc)
+kruskal.test(psyg_cn$POC, psyg_cn$TreatmentID)
+kruskal.test(psyg_cn$POC, psyg_cn$Temp)
+kruskal.test(psyg_cn$POC, psyg_cn$Ironconc)
+
+posthoc.kruskal.dunn.test(POC~TreatmentID, data = min_cn, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(POC~TreatmentID, data = psyg_cn, p.adjust.method = "fdr")
+
+# between species
+kruskal.test(cn$POC, cn$Species)
+kruskal.test(cn$PON, cn$Species)
+
+summary(min_cn)
+summary(psyg_cn)
+```
+
