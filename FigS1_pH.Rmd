@@ -1,0 +1,81 @@
+---
+title: "pH"
+author: "Hannah Reich"
+date: "June 6, 2018"
+output: html_document
+---
+
+```{r}
+# Fig. S1. pH
+# updated jul 2019 for manuscript submission to coauthors
+
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/")
+
+# load appropriate packages
+library(ggplot2)
+library(cowplot)
+library(readxl)
+library(dplyr)
+
+# load the data
+pH <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx",
+                          sheet = "pH")
+
+# attach the data
+attach(pH)
+
+## make objects for the sets of treatment IDs being used
+# for the blank
+blank <- filter(pH, treatmentID %in% c("blank"))
+# select min and psyg results using the dplyr function
+brev <- filter(pH, species %in% c("min", "psyg"))
+# pull out only the iron treatments being used for chapter
+fesubset <- filter(brev, iron %in% c("10", "50", "100"))
+
+# get means by group
+### this page is helpful: https://stackoverflow.com/questions/11562656/calculate-the-mean-by-group
+# breviolum
+brevstats <- fesubset %>% group_by(species, CulturePhase, iron, temp) %>% summarise(mean = mean(pH), sd = sd(pH))
+                                                                   
+# get the average and standard deviation of the blank
+# the blank is seawater that was not spiked with culture media
+blank_avg <- lapply(blank, mean, na.rm = TRUE)
+blank_avg
+blank_std <- sapply(blank, sd, na.rm = TRUE)
+blank_std
+
+## make plots
+order <- c("Lag", "Log", "Stationary") # culture phases
+pd <- position_dodge(0.9) # for error bars
+# try colorblind palette
+cbPalette <- c("#0072B2", "#999999", "#D55E00")
+
+#### BREVIOLUM PLOT
+# reorder the levels and relabel them
+brevstats$iron_f = factor(brevstats$iron, levels = c('100', '50', '10'), labels = c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")) # this converts total dissolved iron concentrations (nM Fe) into bioavailable iron concentrations (pM Fe'). Briefly, Fe' values indicate the fraction of the total dissolved [Fe] that remain bioavailable after the addition of EDTA
+brevstats$species_f = factor(brevstats$species, levels = c('min', 'psyg'), labels = c("B. minutum", "B. psygmophilum"))
+
+brev_pH <- ggplot(brevstats, aes(x=CulturePhase, y=mean, fill=temp)) + 
+  geom_bar(stat = "identity",position = "dodge") +
+  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1)) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=0.75, colour="black", position = pd) +
+  labs(x="Culture phase", y="pH") + 
+  theme(axis.text.y = element_text(size=10)) + 
+  theme(axis.text.x = element_text(size=10)) + 
+  theme(axis.title = element_text(size=10, face = "bold")) +
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.title = element_text(size=10, face="bold")) +
+  theme(legend.title.align=0.5)  +
+  facet_grid(species_f~iron_f) +
+  coord_cartesian(ylim=c(7,10)) + 
+  scale_fill_manual(values = cbPalette, name="Temperature",
+                    breaks=c("26", "28", "30"),
+                    labels=c("26°C", "28°C", "30°C")) +
+  theme(strip.text.y = element_text(size=10, face="bold.italic", margin = margin(.1, .1, .1, .1, "cm"))) +
+  theme(strip.text.x = element_text(size=10, margin = margin(.1, .1, .1, .15, "cm")))
+
+brev_pH
+save_plot("FigS1_pH.pdf", brev_pH, base_aspect_ratio = 1.7)
+```
+
