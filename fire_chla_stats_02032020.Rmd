@@ -1,0 +1,306 @@
+---
+title: "fire_chla_stats_02032020"
+author: "Hannah Reich"
+date: "2/3/2020"
+output: html_document
+---
+
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/")
+
+# load the packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(PMCMR)
+library(cowplot)
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(reshape2)
+library(tidyr)
+
+## FIRe data analyses include PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and fluorescent yield from single turnover (ST) relaxation (FvD/FmD), connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1)
+# all data taken using satlantic FIRe
+# data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript.
+# raw data file includes max+min flourescence (Fo, Fm) etc for transparency.
+
+# load the FIRe data for the necessary stats
+dat <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/hplc_fire_results_git.xlsx", sheet = "data")
+
+# check the structure of the data. make sure phys data are numeric
+str(dat)
+
+# make treatmentID a factor
+dat$treatmentID <- as.factor(dat$treatmentID)
+# make species a factor
+dat$species <- as.factor(dat$species)
+
+# creating a function to automate psyg/min comparisons for kw and average
+# this is only for the FIRe data, hplc data needs to be normalized to cell vol used.
+# useful websites: https://www.guru99.com/r-apply-sapply-tapply.html; http://rstudio-pubs-static.s3.amazonaws.com/1204_67621a69f1dc465f81de9716ec063742.html
+lapply(dat[,14:18], function(x) kruskal.test(x~dat$species))
+by(dat[,14:18], dat$species, summary)
+
+kw_fire <- lapply(dat[,14:18], function(x) kruskal.test(x~dat$species))
+kw_fire2 <- data.frame(unlist(kw_fire))
+write.table(kw_fire2, "kw_fire_res.txt", quote=F)
+
+summary_fire <- data.frame(do.call("rbind", by(dat[,14:18], dat$species, tol = 10e-30, summary)))
+write.table(summary_fire, "summary_fire.txt", quote=F)
+
+sw_test_results <- dat %>% 
+    gather(key = "variable_name", value = "value", FvFm:FvDFmD) %>% 
+    group_by(variable_name, species)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+write.table(sw_test_results, "fire_normality.txt", quote =F)
+
+# make objects for min and psyg
+m <- dat %>% filter(species %in% c("min"))
+p <- dat %>% filter(species %in% c("psyg"))
+
+##### Kruskal-wallis tests by parameter for each species, shows comparisons
+# shapiro tests first (no data will ever be normal though)
+# wow, some of the data is actually normal. but since some parameters aren't normal, using non-parametric stats anyways to treat everybody the same
+
+# min first
+shapiro.test(m$FvFm)
+shapiro.test(m$Sigma)
+shapiro.test(m$p_conn)
+shapiro.test(m$TauAv1)
+shapiro.test(m$FvDFmD)
+
+# psyg
+shapiro.test(p$FvFm)
+shapiro.test(p$Sigma)
+shapiro.test(p$p_conn)
+shapiro.test(p$TauAv1)
+shapiro.test(p$FvDFmD)
+
+# min kruskal wallis tests
+kruskal.test(m$FvFm, m$Ironconc * m$Temp)
+kruskal.test(m$Sigma, m$Ironconc * m$Temp)
+kruskal.test(m$p_conn, m$Ironconc * m$Temp)
+kruskal.test(m$TauAv1, m$Ironconc * m$Temp)
+kruskal.test(m$FvDFmD, m$Ironconc * m$Temp)
+
+# psyg kruskal wallis tests
+kruskal.test(p$FvFm, p$Ironconc * p$Temp)
+kruskal.test(p$Sigma, p$Ironconc * p$Temp)
+kruskal.test(p$p_conn, p$Ironconc * p$Temp)
+kruskal.test(p$TauAv1, p$Ironconc * p$Temp)
+kruskal.test(p$FvDFmD, p$Ironconc * p$Temp)
+
+# post hoc tests, not all significant
+# first min
+posthoc.kruskal.dunn.test(FvFm~treatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~treatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(p_conn~treatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(TauAv1~treatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(FvDFmD~treatmentID, data = m, p.adjust.method = "fdr")
+
+# psyg
+posthoc.kruskal.dunn.test(FvFm~treatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~treatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(p_conn~treatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(TauAv1~treatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(FvDFmD~treatmentID, data = p, p.adjust.method = "fdr")
+
+## extra fv/fm and sigma
+# min kruskal wallis tests
+kruskal.test(m$FvFm, m$Ironconc)
+kruskal.test(m$Sigma, m$Temp)
+
+# psyg kruskal wallis tests
+kruskal.test(p$FvFm, p$Ironconc)
+kruskal.test(p$Sigma, p$Temp)
+
+# min
+posthoc.kruskal.dunn.test(FvFm~Ironconc, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~Ironconc, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(FvFm~Temp, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~Temp, data = m, p.adjust.method = "fdr")
+
+# psyg
+posthoc.kruskal.dunn.test(FvFm~Ironconc, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~Ironconc, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(FvFm~Temp, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Sigma~Temp, data = p, p.adjust.method = "fdr")
+
+
+###############################
+###### figure 4 code, plots fv/fm by sigma. shows unique PSII profile for each species
+# how to include greek letters: https://stats.idre.ucla.edu/r/codefragments/greek_letters/
+
+# make temperature a factor
+dat$Temp <- as.factor(dat$Temp)
+
+# create a color blind palette
+cols <-c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+labs <- c("26°C", "28°C", "30°C")
+
+# make object with just metadata, sigma, and fv/fm (so it doesnt mess up factor levels for stats later)
+dat1 <- dat[,c(1:5,14,15,17)]
+
+# make sure factors are pub ready
+dat1$species <- factor(dat1$species, levels = c("min", "psyg"))
+levels(dat1$species) <- c("B. minutum", "B. psygmophilum")
+
+dat1$Ironconc <- factor(dat1$Ironconc, levels =c("100", "50", "10"))
+levels(dat1$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+dat1$Temp <- factor(dat1$Temp, levels =c("26", "28", "30"))
+levels(dat1$Temp) <- c("26°C", "28°C", "30°C")
+
+fvfm_sigma <- ggplot(dat1, aes(x= Sigma, y = FvFm, color = Temp, shape = Ironconc)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1)) +
+  geom_point(size=4.9) +
+  facet_wrap(~species, scales = "fixed") +
+  theme(strip.text = element_text(size=10, face = "bold.italic",margin = margin(.1, .1, .1, .1, "cm"))) +
+  scale_color_manual(values = cols, breaks = c("26°C", "28°C", "30°C"), name = "Temperature") +
+  scale_shape_manual(values = c(24,22,21),name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  labs(y=expression(bold(PSII~Photochemical~Efficiency~(F[v]/F[m]))),
+       x=expression(bold(Effective~Absorption~Cross~Section~sigma~PSII(Å^2~quanta^-1)))) +
+  theme(axis.text = element_text(size=10),
+        panel.grid = element_blank()) + 
+  theme(axis.title = element_text(size=10, face = "bold")) +
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.title = element_text(size=8, face="bold"), legend.title.align = 0) 
+#fvfm_sigma
+#save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig5_fvfm_sigma.pdf", fvfm_sigma, base_aspect_ratio = 1.6)
+
+######## remake this figure. put Both species in same panel. facet by temperature. make B&W
+fs2 <- ggplot(dat1, aes(x= Sigma, y = FvFm, color = species, shape = Ironconc)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1)) +
+  geom_point(size=4.9) +
+  facet_wrap(~Temp, scales = "fixed") +
+  theme(strip.text = element_text(size=10, face = "bold",margin = margin(.1, .1, .1, .1, "cm"))) +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_shape_manual(values = c(24,22,21),name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  labs(y=expression(bold(PSII~Photochemical~Efficiency~(F[v]/F[m]))),
+       x=expression(bold(Effective~Absorption~Cross~Section~sigma~PSII(Å^2~quanta^-1)))) +
+  theme(axis.text = element_text(size=10),
+        panel.grid = element_blank()) + 
+  theme(axis.title = element_text(size=10, face = "bold")) +
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.title = element_text(size=8, face="bold"), legend.title.align = 0) 
+fs2
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig5_fvfm_sigma_VERSION2.pdf", fs2, base_aspect_ratio = 1.6)
+
+##########################
+##########################
+# figure 5 code, plots tau avg by treatment
+# Tau is the electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1)
+
+# calculate average tau and sd by treatment
+bt <- melt(dat1, id=c("treatmentID", "species", "Temp", "Ironconc", "sampleID"), measure.vars = c("TauAv1"))
+btavg <- bt %>% group_by(treatmentID, species, Temp, Ironconc, variable) %>% summarise_all(list(avg = mean, stdev = sd))
+btavg$Temp <- as.factor(btavg$Temp)
+#btavg$Temp <- factor(btavg$Temp, levels = c("26", "28", "30"))
+#levels(btavg$Temp) <- c("26°C", "28°C", "30°C")
+cols2 <-c( "26°C" = "#0072B2", "28°C" = "#999999", "30°C" = "#D55E00")
+
+
+btau <- ggplot(btavg, aes(x=Temp, y=value_avg, fill = Temp)) + 
+  theme_bw() +
+  geom_bar(stat = "identity") + 
+  theme(axis.text.x = element_text(angle=0, vjust=0.5)) +
+  geom_errorbar(aes(ymin=value_avg-value_stdev, ymax=value_avg+value_stdev), width=0.75, colour="black", position=position_dodge()) +
+  labs(x="Culture Treatment", 
+       y=expression(bold(Time~(mu~sec))),
+       title=expression(bold(Q[A]~Electron~Reoxidation~Rate~(tau~Q[A])))) + 
+  theme(axis.text = element_text(size=10),
+        panel.grid = element_blank()) + 
+  theme(axis.title = element_text(size=12, face = "bold")) +
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.title = element_text(size=10, face="bold")) +
+  theme(legend.title.align=0.5)  +
+  facet_grid(species ~ Ironconc) +
+  theme(strip.text.x = element_text(size=12, margin = margin(.15, .15, .15, .15, "cm"))) +
+  theme(strip.text.y = element_text(size=10, face = "bold.italic",margin = margin(.15, .15, .15, .15, "cm"))) +
+  scale_fill_manual(values = cols2, breaks = c("26°C", "28°C", "30°C")) +
+  theme(legend.position = "none")
+btau
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig6_Tau.pdf", btau, base_aspect_ratio = 1.6)
+
+```
+
+```{r}
+# Figure 6
+# this part normalizes hplc pigment content to total breviolum volume harvested (new units ug/L per um3/cell)
+
+# read back in the pigment data
+pig <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/hplc_fire_results_git.xlsx", sheet = "data")
+
+# load the cell vol data back in
+volused <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
+
+# calculate the number of cells used
+volused$cellspig <- (volused$CellDensity*volused$mLpigment)
+volused$cellvolpig <- (volused$cellspig*volused$VolPerCell)
+
+# merge the data
+all <- merge(pig, volused, by = "sampleID")
+all$Chlorophyll_A_CELL <- (all$Chlorophyll_A/all$cellvolpig)  
+all$Temp <- as.factor(all$Temp)
+all$Ironconc <- as.factor(all$Ironconc)
+all$treatmentID.x <- as.factor(all$treatmentID.x)
+
+all$species <- factor(all$species, levels = c("min", "psyg"))
+levels(all$species) <- c("B. minutum", "B. psygmophilum")
+all$Ironconc <- factor(all$Ironconc, levels =c("100", "50", "10"))
+levels(all$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+# make a plot
+ # box plot
+chla <- ggplot(data=all, aes(x=Temp, y=Chlorophyll_A_CELL, fill=Temp, color=Temp)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="ug/L per um3/cell", x="Temperature (°C)", title = "Chlorophyll a content") +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold.italic"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(angle=0),
+        axis.title = element_text(face = "bold"),
+        legend.position = "right") +
+  facet_grid(species~Ironconc, scales = "free_y") +
+  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
+chla
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v5_02042020/FigS2_chla.pdf", chla ,base_aspect_ratio = 1.6)
+
+## by species
+kruskal.test(all$Chlorophyll_A_CELL, all$species)
+
+# make objects for min and psyg
+bm <- all %>% filter(species %in% c("B. minutum"))
+bp <- all %>% filter(species %in% c("B. psygmophilum"))
+
+# normality tests
+shapiro.test(bm$Chlorophyll_A_CELL)
+shapiro.test(bp$Chlorophyll_A_CELL)
+
+# KW test
+kruskal.test(bm$Chlorophyll_A_CELL, bm$Temp)
+kruskal.test(bm$Chlorophyll_A_CELL, bm$Ironconc)
+kruskal.test(bp$Chlorophyll_A_CELL, bp$Temp)
+kruskal.test(bp$Chlorophyll_A_CELL, bp$Ironconc)
+
+# post hoc by iron
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Ironconc, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Ironconc, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by temp
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Temp, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Temp, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by treatment ID
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~treatmentID.x, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~treatmentID.x, data = bp, p.adjust.methods = "fdr")
+```
+
