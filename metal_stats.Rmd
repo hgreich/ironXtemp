@@ -1,0 +1,630 @@
+---
+title: "FigS2_thru_S3_metallome_um3"
+author: "Hannah Reich"
+date: "July 15, 2019"
+output: html_document
+---
+
+script updated 04/22/2020. removed P & C normalizations because P & C fluctuate with temperature. OG file = "~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/FigS2_thru_S3_metallome_um3"
+
+
+```{r}
+# figures S2 & S3
+# um3 per cell normalized metallome data
+# July 2019 for coauthors
+
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/")
+
+# load the packages
+library(ggplot2)
+library(cowplot)
+library(readxl)
+library(dplyr)
+library(reshape2)
+library(ggpubr)
+library(tidyr)
+library(Hmisc)
+library(outliers)
+library(tidyverse)
+library(data.table)
+library(plyr)
+library(RVAideMemoire)  # load for the se() function
+
+# read in the metal data (concentration in nM but blank adjusted)
+nm <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/metallome_um3.xlsx",
+                 sheet = "nMconc_RAW")
+nm <- as.data.frame(nm)
+
+# read in the volume used from the celldensity excel data
+vol <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx",
+                  sheet = "vol")
+vol <- as.data.frame(vol)
+
+# merge the vol used and TM data with one another
+all <- merge(nm, vol, by = "sampleID")
+
+# create a column for the total volume of cell material used (this figure's unit will be nM/um3)
+all$tmvol <- (all$mLTM*all$TotalVol)
+
+# create vectors for all of the nutrients that normalize the data by # of cells used (except V, Mo, and Cr)
+all$Pcell <- ((all$Phosphorus/all$tmvol)*1000)
+all$Manganesecell <- ((all$Manganese/all$tmvol)*1000)
+all$Ironcell <- ((all$Iron/all$tmvol)*1000)
+all$Cobaltcell <- ((all$Cobalt/all$tmvol)*1000)
+all$Nickelcell <- ((all$Nickel/all$tmvol)*1000)
+all$Coppercell <- ((all$Copper/all$tmvol)*1000)
+all$Zinccell <- ((all$Zinc/all$tmvol)*1000)
+
+# write out data table and do outlier detection in excel
+write.csv(all, "~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/nutrientspervol_raw.csv", quote = FALSE, row.names = TRUE, col.names = TRUE)
+
+# data checked via excel and the only values that were removed from the raw data were two negative zinc values in psyg-100-30-2a
+
+```
+
+
+part 2: univariate figs and stats
+```{r}
+# metal figures and analysis
+# first the data were put through the outlier removal flow through (chunk 1) and were manually checked to ensure outliers removed were statistical outliers and not biological variability
+
+# load more packages
+library(MASS)
+library(PMCMR)
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(readxl)
+
+# load the data
+dat_all <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/metallome_um3.xlsx",
+      sheet = "formanova")
+dat_all <- as.data.frame(dat_all)
+
+# check the structure, make sure all of the metals are numeric
+str(dat_all)
+
+# make ironconc, temp, and treatmentID factors
+dat_all$TreatmentID <- as.factor(dat_all$TreatmentID)
+dat_all$Species <- as.factor(dat_all$Species)
+
+#######################
+# get average metal content for each metal by species
+# creating a function to automate psyg/min comparisons for kw and average
+# useful websites: https://www.guru99.com/r-apply-sapply-tapply.html; http://rstudio-pubs-static.s3.amazonaws.com/1204_67621a69f1dc465f81de9716ec063742.html
+kw_um3 <- lapply(dat_all[,9:15], function(x) kruskal.test(x~dat_all$Species))
+kw <- data.frame(unlist(kw_um3))
+write.table(kw, "kw_um3_res.txt", quote=F)
+
+na <- na.omit(dat_all)
+summary_um3 <- data.frame(do.call("rbind", by(na[,6:12], na$Species, tol = 10e-30, summary)))
+write.table(summary_um3, "summary_um3.txt", quote=F)
+
+summary_um3 # min is on top psyg is on bottom, checked values by running the old code (just the by function without the rbind stuff that turns it into a dataframe)
+kw_um3
+
+#wrote stuff out to table so everything can be in a supp excel file so peeps don't have to dig through github code for it
+
+sw_test_results <- dat_all %>% 
+    gather(key = "variable_name", value = "value", Cobalt:Phosphorus) %>% 
+    group_by(variable_name, Species)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+write.table(sw_test_results, "um3_normality.txt", quote =F)
+
+#######################
+######### do the stats by treatment
+
+# make objects for min and psyg
+m <- dat_all %>% filter(Species %in% c("m"))
+p <- dat_all %>% filter(Species %in% c("p"))
+
+# make groups for the posthoc test
+groupm <- cbind(m$Ironconc, m$Temp)
+
+##### Kruskal-wallis tests by element for each species, shows comparisons
+# shapiro tests first (no ma will ever be normal though)
+# wow, some of the ma is actually normal. but since some metals aren't non-parametric stats anyways to treat everybody the same
+
+# min first
+shapiro.test(m$Cobalt)
+shapiro.test(m$Copper)
+shapiro.test(m$Iron)
+shapiro.test(m$Manganese)
+shapiro.test(m$Nickel)
+shapiro.test(m$Zinc)
+shapiro.test(m$Phosphorus)
+
+# now psyg
+shapiro.test(p$Cobalt)
+shapiro.test(p$Copper)
+shapiro.test(p$Iron)
+shapiro.test(p$Manganese)
+shapiro.test(p$Nickel)
+shapiro.test(p$Zinc)
+shapiro.test(p$Phosphorus)
+
+# min kruskal wallis tests
+kruskal.test(m$Cobalt, m$Ironconc * m$Temp)
+kruskal.test(m$Copper, m$Ironconc * m$Temp)
+kruskal.test(m$Iron, m$Ironconc * m$Temp)
+kruskal.test(m$Manganese, m$Ironconc * m$Temp)
+kruskal.test(m$Nickel, m$Ironconc * m$Temp)
+kruskal.test(m$Zinc, m$Ironconc * m$Temp)
+kruskal.test(m$Phosphorus, m$Ironconc * m$Temp)
+
+# psyg kruskal wallis tests
+kruskal.test(p$Cobalt, p$Ironconc * p$Temp)
+kruskal.test(p$Copper, p$Ironconc * p$Temp)
+kruskal.test(p$Iron, p$Ironconc * p$Temp)
+kruskal.test(p$Manganese, p$Ironconc * p$Temp)
+kruskal.test(p$Nickel, p$Ironconc * p$Temp)
+kruskal.test(p$Zinc, p$Ironconc * p$Temp)
+kruskal.test(p$Phosphorus, p$Ironconc * p$Temp)
+
+## everything is significant, use the posthoc kruskal dunn test to detect signifigance between groups
+
+# first min
+posthoc.kruskal.dunn.test(Cobalt~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Copper~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Iron~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Manganese~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Nickel~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Zinc~TreatmentID, data = m, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Phosphorus~TreatmentID, data = m, p.adjust.method = "fdr")
+
+# now psyg
+posthoc.kruskal.dunn.test(Cobalt~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Copper~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Iron~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Manganese~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Nickel~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Zinc~TreatmentID, data = p, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(Phosphorus~TreatmentID, data = p, p.adjust.method = "fdr")
+
+#######################
+# make the figure
+
+# rename dataframe
+um3 <- dat_all
+
+# for the error bars
+pd <- position_dodge(0.1)
+
+# melt the data
+# the order of the measured variables is important for facet wrapping later
+melt2 <- melt(um3, id=c("Species", "Ironconc", "Temp", "TreatmentID"), measure.vars=c("Iron","Zinc","Manganese", "Copper", "Cobalt","Nickel", "Phosphorus"))
+melt2 <- as.data.frame(melt2)
+
+# rename factors so they are publication ready
+melt2$Species <- as.factor(melt2$Species)
+melt2$Species <- factor(melt2$Species, levels = c("m", "p"))
+levels(melt2$Species) <- c("B. minutum", "B. psygmophilum")
+# breviolum iron conc
+# this converts total dissolved iron concentrations (nM Fe) into bioavailable iron concentrations (pM Fe'). Briefly, Fe' values indicate the fraction of the total dissolved [Fe] that remain bioavailable after the addition of EDTA
+melt2$Ironconc <- as.factor(melt2$Ironconc)
+melt2$Ironconc <- factor(melt2$Ironconc, levels =c("500", "250", "50"))
+levels(melt2$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+melt2$TreatmentID <- as.factor(melt2$TreatmentID)
+melt2$variable <- as.factor(melt2$variable)
+melt2$variable <- factor(melt2$variable, levels = c("Cobalt", "Copper", "Iron", "Manganese", "Nickel", "Zinc", "Phosphorus"))
+
+# create a color blind palette
+cols <- c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+
+# remove missing data
+melt3 <- na.omit(melt2)
+
+# get summary stats
+stats <- melt3 %>% group_by(Ironconc, Species, Temp, variable, TreatmentID) %>% summarise_all(list(avg = mean, stdev = sd))
+
+stats$Temp <- as.factor(stats$Temp)
+
+# make the bar graph
+bbar <- ggplot(data=stats, aes(x = Species, y=avg, fill=Temp)) +
+  geom_bar(stat = "identity", position = position_dodge2(preserve = "single")) +
+  geom_errorbar(aes(ymin=avg-stdev, ymax=avg+stdev), width=0.9, colour="black", position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(axis.text.x = element_text(angle=25, vjust=1, hjust=1), axis.title.x = element_blank()) +
+  facet_grid(variable~Ironconc, scales = "free") + 
+  theme(axis.text.y = element_text(size=12)) +
+  theme(axis.text.x = element_text(size=12, face = "italic")) +
+  theme(axis.title = element_text(size=16, face = "bold")) +
+  theme(legend.text = element_text(size=14)) + 
+  theme(legend.title = element_text(size=14, face = "bold")) +
+  labs(y="[Nutrient] um3 cell", 
+       x="Species") +
+  theme(legend.position = "bottom")  +
+  theme(strip.text = element_text(size=12, face = "bold",margin = margin(.15, .15, .15, .15, "cm"))) +
+  scale_fill_manual(values = cols, name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_x_discrete()  
+bbar
+
+ggsave("FigS2_metallome_um3.pdf", bbar, width = 6, height = 10, units = "in")
+
+```
+
+part 3: multivariate figures and stats
+```{r}
+# load for mosaic plots
+library(ggmosaic)
+
+#back to using the dat dataframe (includes everything)
+dat <- um3
+dat <- as.data.frame(dat)
+
+# make treatmentID a factor
+dat$Species <- as.factor(dat$Species)
+dat$TreatmentID <- as.factor(dat$TreatmentID)
+
+# make an object for the dependent variables (the trace metals)
+dependent.vars <- dat[,9:15]
+dependent.vars <- as.matrix(dependent.vars)
+
+# make a na matrix of the data
+na <- na.omit(dat)
+
+#### LDA/DFA time
+
+# SPECIES
+
+rh <-lda(dat$Species ~ dependent.vars,tol = 1.0e-25, CV = F)
+rh # this gives you info on priors ($prior), coefficients of linear discriminants ($scaling), group means ($means)
+rh$counts # this tells you how many in each independent group
+rh$svd # the singular values (svd) that gives the ratio of the between- and within-group standard deviations on the linear discriminant variables.
+x <- rh$svd
+pdf("brev_vol_dfa.pdf")
+plot(rh, abbrev = 3, dimen = 2) # this plots the 2st to linear discriminants
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(dat$Species ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Species, rh_dfa$class)
+#pdf("brev_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Species",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = dat$Species, col = "grey")
+
+##################### 
+# make objects for min and psyg
+m <- dat %>% filter(Species %in% c("m"))
+psy <- dat %>% filter(Species %in% c("p"))
+
+##############
+##################### 
+# only minutum
+##################### 
+##############
+
+# make a matrix of dependent variables
+dependent.vars <- m[,9:15]
+dependent.vars <- as.matrix(dependent.vars)
+
+# make a na matrix of the ma
+na <- na.omit(m)
+
+#### LDA/DFA time
+
+# IRON CONCENTRATION
+rh <-lda(m$Ironconc ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("min_dfa_fe_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(m$Ironconc ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Ironconc, rh_dfa$class)
+#pdf("min_mos_fe_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Iron concentration",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = m$Ironconc, col = "grey")
+
+# TEMPERATURE TREATMENT
+rh <-lda(m$Temp ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("min_dfa_temp_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2,
+     cex = 1.3, 
+     cex.axis = 1.5,
+     cex.lab = 1.6)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(m$Temp ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Temp, rh_dfa$class)
+#pdf("min_temp_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Temperature",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = m$Temp, col = "grey")
+
+# make a less ugly scatterplot of LDA, helpful website: https://rpubs.com/ifn1411/LDA
+# useful for ellipses https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+# wrangle the data
+newdata1 <- data.frame(Temp = na[,3], Ironconc = na[,2],lda= lda.val$x)
+newdata1$Temp <- as.factor(newdata1$Temp)
+newdata1$Ironconc <- as.factor(newdata1$Ironconc)
+
+# create a color blind palette
+cols <-c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+labs <- c("26°C", "28°C", "30°C")
+
+# make the plot
+bmin <- ggplot(newdata1) + 
+  geom_point(aes(newdata1$lda.LD1, newdata1$lda.LD2, 
+                 color = newdata1$Temp, 
+                 shape = newdata1$Ironconc), 
+                 size = 3.5) + 
+  theme_bw() +
+  labs(title = "Breviolum minutum",
+       x = "LD1",
+       y = "LD2") +
+  scale_color_manual(values = cols, breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"), name = "Temperature") +
+  scale_shape_manual(values = c(21,22,24),
+                name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  theme(axis.text = element_text(size=12)) + 
+  theme(axis.title = element_text(size=12, face = "bold")) +
+  theme(plot.title = element_text(size=14, face = "bold.italic")) +
+  theme(legend.text = element_text(size=10),
+        panel.grid = element_blank()) + 
+  theme(legend.title = element_text(size=10, face="bold"), legend.title.align = 0) +
+  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
+               aes(newdata1$lda.LD1, newdata1$lda.LD2, fill = newdata1$Temp)) +  
+               scale_fill_manual(values = cols) + theme_cowplot()
+bmin
+
+#save_plot("FigS3A_bmin.pdf", bmin, base_aspect_ratio = 1.6)
+
+
+##############
+##################### 
+# only psygmophilum
+##################### 
+##############
+
+# make a matrix of dependent variables
+dependent.vars <- psy[,9:15]
+dependent.vars <- as.matrix(dependent.vars)
+
+# make a na matrix of the data
+na <- na.omit(psy)
+
+###
+# LDA/DFA time
+
+# IRON CONCENTRATION
+rh <-lda(psy$Ironconc ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+pdf("psyg_dfa_fe_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(psy$Ironconc ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Ironconc, rh_dfa$class)
+pdf("psyd_mos_fe_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Iron concentration",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = psy$Ironconc, col = "grey")
+
+# TEMPERATURE TREATMENT
+rh <-lda(psy$Temp ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+pdf("psyg_temp_dfa_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2,
+     cex = 1.3, 
+     cex.axis = 1.5,
+     cex.lab = 1.6)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(psy$Temp ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Temp, rh_dfa$class)
+pdf("psyg_temp_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Temperature",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = psy$Temp, col = "grey")
+
+# make a less ugly scatterplot of LDA, helpful website: https://rpubs.com/ifn1411/LDA
+# useful for ellipses https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+# wrangle the data
+newdata <- data.frame(Temp = na[,3], Ironconc = na[,2],lda= lda.val$x)
+newdata$Temp <- as.factor(newdata$Temp)
+newdata$Ironconc <- as.factor(newdata$Ironconc)
+
+
+# make the plot
+bpsyg <- ggplot(newdata) + 
+  geom_point(aes(newdata$lda.LD1, newdata$lda.LD2, 
+                 color = newdata$Temp, 
+                 shape = newdata$Ironconc), 
+                 size = 3.5) + 
+  theme_bw() +
+  labs(title = "Breviolum psygmophilum",
+       x = "LD1",
+       y = "LD2") +
+  scale_color_manual(values = cols, breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"), name = "Temperature") +
+  scale_shape_manual(values = c(21,22,24),
+                name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  theme(axis.text = element_text(size=12)) + 
+  theme(axis.title = element_text(size=12, face = "bold")) +
+  theme(plot.title = element_text(size=14, face = "bold.italic")) +
+  theme(legend.text = element_text(size=10),
+        panel.grid = element_blank()) + 
+  theme(legend.title = element_text(size=10, face="bold"), legend.title.align = 0) +
+  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
+               aes(newdata$lda.LD1, newdata$lda.LD2, fill = newdata$Temp)) +  
+               scale_fill_manual(values = cols) + theme_cowplot()
+bpsyg
+
+bmin
+
+#save_plot("FigS3B_bpsyg.pdf", bpsyg, base_aspect_ratio = 1.6)
+
+# plot grid them together
+legend <- get_legend(bpsyg)
+
+brev <- plot_grid(bmin + theme(legend.position = "none"), bpsyg + theme(legend.position = "none"), legend, nrow=1)
+brev
+
+#save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig4A_um3_multivar.pdf",brev, nrow=1, ncol=2, base_aspect_ratio = 1.2)
+
+
+#### facet this plot (instead of making one scatter plot for bmin and one for bspyg). faceting makes life better
+# add a species column for faceting. newdata1 is Bmin, newdata is Bpsyg. *headdesk*
+newdata1$Species <- c("Breviolum minutum")
+newdata$Species <- c("Breviolum psygmophilum")
+# rbind them together
+bothspp <- rbind(newdata, newdata1)
+
+both <- ggplot(bothspp) + 
+  geom_point(aes(bothspp$lda.LD1, bothspp$lda.LD2, 
+                 color = bothspp$Temp, 
+                 shape = bothspp$Ironconc), 
+                 size = 3.5) + 
+  theme_bw() +
+  facet_wrap(~Species) +
+  labs(x = "LD1", y = "LD2") +
+  scale_color_manual(values = cols, breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"), name = "Temperature") +
+  scale_shape_manual(values = c(21,22,24),
+                name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  theme(axis.text = element_text(size=12),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.text = element_text(size=10),
+        panel.grid = element_blank(),
+        legend.title = element_text(size=10, face="bold"), legend.title.align = 0,
+        strip.text = element_text(size = 12, face = "bold.italic")) +
+  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
+               aes(bothspp$lda.LD1, bothspp$lda.LD2, fill = bothspp$Temp)) +  
+               scale_fill_manual(values = cols) 
+both
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig4_um3_multivar.pdf",both, base_aspect_ratio = 1.9)
+
+```
+
+
+part 4: normalization of POC and PON to cell vol
+```{r}
+# this part of the script normalizes all of the metals to Particulate Organic Carbon (POC).
+# calculation info for the POC and Particulate Organic Nitrogen (PON) is in the excel file "poc_pon"
+
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(MASS)
+library(PMCMR)
+
+# read in the data
+dat <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/poc_pon.xlsx", sheet = "pocpon_forR")
+dat <- as.data.frame(dat)
+
+# normalize the POC and PON content to vol per cell
+# load the cell vol data back in
+volused <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
+
+#all$tmvol <- (all$mLTM*all$TotalVol)
+
+# calculate the number of cells used
+volused$cellvol_pocpon <- (volused$TotalVol*volused$mLPOCPON)
+
+# merge the data
+all <- merge(dat, volused, by = "sampleID")
+all <- as.data.frame(all)
+
+# now calculate C and N per uM3 cell
+all$C_Cell <- ((all$POC_uM/all$TotalVol)*1000)
+all$N_Cell <- ((all$PON_uM/all$TotalVol)*1000)
+
+# write out file with just sample info and N and C per cell
+all1 <- all[,c(1:5,16:17)]
+write_csv(all1, "POCPON_cell.csv")
+
+
+
+```
+
+
