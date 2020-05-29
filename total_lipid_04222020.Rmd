@@ -59,6 +59,27 @@ tot1
 
 save_plot("lipid_cell.pdf", tot1, base_aspect_ratio = 1.6)
 
+## update to have the two species on the same row!
+# this is the one used for the manuscript!
+tot2 <- ggplot(data=tot, aes(x=Ironconc, y=total_lipid_no_outlier, fill=Species, color=Species)) +
+  geom_boxplot(alpha = 0.5, aes(colour = factor(Species)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="Total lipid (mg/cell)", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold.italic"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "fixed") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+tot2
+
+save_plot("lipid_cell_v2.pdf", tot2, base_aspect_ratio = 1.9)
+
 ### do the total lipid stats.
 
 # between species
