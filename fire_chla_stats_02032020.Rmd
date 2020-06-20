@@ -21,6 +21,8 @@ library(broom)      # for function `tidy`
 library(reshape2)
 library(tidyr)
 
+### figure 2 is the a) fv/fm versus sigma and b) tau figures. they were combined and fized up in illustrator.  things that were done in illustrator included: change of font & sizes, removing transparancy from points in part a, removing grey backgrounds from facets, change of part a legend placement, adding in greek letters for sigma units because saving figure as pdf made it disappear
+
 ## FIRe data analyses include PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and fluorescent yield from single turnover (ST) relaxation (FvD/FmD), connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1)
 # all data taken using satlantic FIRe
 # data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript.
@@ -138,7 +140,7 @@ posthoc.kruskal.dunn.test(Sigma~Temp, data = p, p.adjust.method = "fdr")
 dat$Temp <- as.factor(dat$Temp)
 
 # create a color blind palette
-cols <-c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+cols <-c( "26" = "black", "28" = "grey", "30" = "white")
 labs <- c("26°C", "28°C", "30°C")
 
 # make object with just metadata, sigma, and fv/fm (so it doesnt mess up factor levels for stats later)
@@ -154,25 +156,7 @@ levels(dat1$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
 dat1$Temp <- factor(dat1$Temp, levels =c("26", "28", "30"))
 levels(dat1$Temp) <- c("26°C", "28°C", "30°C")
 
-fvfm_sigma <- ggplot(dat1, aes(x= Sigma, y = FvFm, color = Temp, shape = Ironconc)) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1)) +
-  geom_point(size=4.9) +
-  facet_wrap(~species, scales = "fixed") +
-  theme(strip.text = element_text(size=10, face = "bold.italic",margin = margin(.1, .1, .1, .1, "cm"))) +
-  scale_color_manual(values = cols, breaks = c("26°C", "28°C", "30°C"), name = "Temperature") +
-  scale_shape_manual(values = c(24,22,21),name = "Bioavailable Iron \nConcentration (pM Fe')") +
-  labs(y=expression(bold(PSII~Photochemical~Efficiency~(F[v]/F[m]))),
-       x=expression(bold(Effective~Absorption~Cross~Section~sigma~PSII(Å^2~quanta^-1)))) +
-  theme(axis.text = element_text(size=10),
-        panel.grid = element_blank()) + 
-  theme(axis.title = element_text(size=10, face = "bold")) +
-  theme(legend.text = element_text(size=8)) + 
-  theme(legend.title = element_text(size=8, face="bold"), legend.title.align = 0) 
-#fvfm_sigma
-#save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig5_fvfm_sigma.pdf", fvfm_sigma, base_aspect_ratio = 1.6)
-
-######## remake this figure. put Both species in same panel. facet by temperature. make B&W
+######## make the Fv/Fm & sigma figure. put Both species in same panel. facet by temperature. make B&W
 fs2 <- ggplot(dat1, aes(x= Sigma, y = FvFm, color = species, shape = Ironconc)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1)) +
@@ -203,7 +187,6 @@ btavg$Temp <- as.factor(btavg$Temp)
 #btavg$Temp <- factor(btavg$Temp, levels = c("26", "28", "30"))
 #levels(btavg$Temp) <- c("26°C", "28°C", "30°C")
 cols2 <-c( "26°C" = "#0072B2", "28°C" = "#999999", "30°C" = "#D55E00")
-
 
 btau <- ggplot(btavg, aes(x=Temp, y=value_avg, fill = Temp)) + 
   theme_bw() +
@@ -256,23 +239,24 @@ all$Ironconc <- factor(all$Ironconc, levels =c("100", "50", "10"))
 levels(all$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
 
 # make a plot
- # box plot
-chla <- ggplot(data=all, aes(x=Temp, y=Chlorophyll_A_CELL, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+ # box plot with species next to one another
+chla1 <- ggplot(data=all, aes(x=Ironconc, y=Chlorophyll_A_CELL, fill=species, color= "black")) +
+  geom_boxplot(alpha = 0.7, color = "black", varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
   theme_bw() +
-  labs(y="ug/L per um3/cell", x="Temperature (°C)", title = "Chlorophyll a content") +
+  labs(y="ug/L per um3/cell", x=element_blank(), title = "Chlorophyll a content") +
   theme(panel.grid = element_blank(),
         strip.text.x = element_text(face = "bold"),
         strip.text.y = element_text(face = "bold.italic"),
         legend.title = element_text(face = "bold"),
-        axis.text.x = element_text(angle=0),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
         axis.title = element_text(face = "bold"),
-        legend.position = "right") +
-  facet_grid(species~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-chla
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v5_02042020/FigS2_chla.pdf", chla ,base_aspect_ratio = 1.6)
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "fixed") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+chla1
+save_plot("FigS2_chla_v2.pdf", chla1 ,base_aspect_ratio = 1.6)
+# illustrator edits: edit y-axis to have propper greek letters & superscripts; make sure "a" in title is italicized
 
 ## by species
 kruskal.test(all$Chlorophyll_A_CELL, all$species)
