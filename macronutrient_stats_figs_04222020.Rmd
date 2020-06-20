@@ -1,11 +1,11 @@
 ---
-title: "Fig2_thru_3_nuts_per_cell_jan2020update"
+title: "macronutrients"
 author: "Hannah Reich"
 date: "1/21/2020"
 output: html_document
 ---
 
-script updated 4.22.2020 to only include necessary info for ms. original script (~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/NEW_fig2_thru_3_nutsPERcell_jan2020)
+
 ```{r}
 # jan 21 2020.
 # remaking C/N/P per cell and metal/cell figures (other rmarkdowns were getting super crowded so made a new one)
@@ -145,3 +145,5 @@ summary(min_cn)
 summary(psyg_cn)
 ```
 
+history: script updated 4.22.2020 to only include necessary info for ms. original script (~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/NEW_fig2_thru_3_nutsPERcell_jan2020)
+used to be named: nutrients_stats_figs; renamed micronutrients to avoid confusion
