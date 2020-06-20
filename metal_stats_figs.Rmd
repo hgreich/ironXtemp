@@ -1,16 +1,17 @@
 ---
-title: "FigS2_thru_S3_metallome_um3"
+title: "FigS2_thru_S3_metalsum3"
 author: "Hannah Reich"
 date: "July 15, 2019"
 output: html_document
 ---
 
-script updated 04/22/2020. removed P & C normalizations because P & C fluctuate with temperature. OG file = "~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/FigS2_thru_S3_metallome_um3"
+script updated 04/22/2020. removed P & C normalizations because P & C fluctuate with temperature. 
+has stats & figs for figures 3, S4, and S5
 
 
 ```{r}
 # figures S2 & S3
-# um3 per cell normalized metallome data
+# um3 per cell normalized metal data
 # July 2019 for coauthors
 
 # set the working directory
@@ -193,7 +194,7 @@ pd <- position_dodge(0.1)
 
 # melt the data
 # the order of the measured variables is important for facet wrapping later
-melt2 <- melt(um3, id=c("Species", "Ironconc", "Temp", "TreatmentID"), measure.vars=c("Iron","Zinc","Manganese", "Copper", "Cobalt","Nickel", "Phosphorus"))
+melt2 <- melt(um3, id=c("Species", "Ironconc", "Temp", "TreatmentID"), measure.vars=c("Phosphorus","Iron", "Manganese", "Zinc", "Cobalt", "Copper", "Nickel"))
 melt2 <- as.data.frame(melt2)
 
 # rename factors so they are publication ready
@@ -207,7 +208,8 @@ melt2$Ironconc <- factor(melt2$Ironconc, levels =c("500", "250", "50"))
 levels(melt2$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
 melt2$TreatmentID <- as.factor(melt2$TreatmentID)
 melt2$variable <- as.factor(melt2$variable)
-melt2$variable <- factor(melt2$variable, levels = c("Cobalt", "Copper", "Iron", "Manganese", "Nickel", "Zinc", "Phosphorus"))
+# make sure the order of the nutrients reflects concentration in sym cell (from highest to lowest)
+melt2$variable <- factor(melt2$variable, levels = c("Phosphorus","Iron", "Manganese", "Zinc", "Cobalt", "Copper", "Nickel"))
 
 # create a color blind palette
 cols <- c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
@@ -220,13 +222,15 @@ stats <- melt3 %>% group_by(Ironconc, Species, Temp, variable, TreatmentID) %>% 
 
 stats$Temp <- as.factor(stats$Temp)
 
-# make the bar graph
+# make the bar graph, this is figure S4
 bbar <- ggplot(data=stats, aes(x = Species, y=avg, fill=Temp)) +
   geom_bar(stat = "identity", position = position_dodge2(preserve = "single")) +
   geom_errorbar(aes(ymin=avg-stdev, ymax=avg+stdev), width=0.9, colour="black", position=position_dodge2(width = 0.9, preserve = "single")) +
-  theme(axis.text.x = element_text(angle=25, vjust=1, hjust=1), axis.title.x = element_blank()) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=20, vjust=1, hjust=1), axis.title.x = element_blank()) +
   facet_grid(variable~Ironconc, scales = "free") + 
-  theme(axis.text.y = element_text(size=12)) +
+  theme(axis.text.y = element_text(size=12),
+        panel.grid = element_blank()) +
   theme(axis.text.x = element_text(size=12, face = "italic")) +
   theme(axis.title = element_text(size=16, face = "bold")) +
   theme(legend.text = element_text(size=14)) + 
@@ -235,11 +239,12 @@ bbar <- ggplot(data=stats, aes(x = Species, y=avg, fill=Temp)) +
        x="Species") +
   theme(legend.position = "bottom")  +
   theme(strip.text = element_text(size=12, face = "bold",margin = margin(.15, .15, .15, .15, "cm"))) +
-  scale_fill_manual(values = cols, name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
+  scale_fill_manual(values = cols, name = "Temperature", breaks = c("26", "28", "30"), labels=c("26 °C", "28 °C", "30 °C")) +
   scale_x_discrete()  
 bbar
 
-ggsave("FigS2_metallome_um3.pdf", bbar, width = 6, height = 10, units = "in")
+# the y-axis was tweaked in illustrator to add greek letters & superscripts for units
+ggsave("FigS4_metal_um3.pdf", bbar, width = 6, height = 10, units = "in")
 
 ```
 
@@ -398,32 +403,6 @@ newdata1$Ironconc <- as.factor(newdata1$Ironconc)
 cols <-c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
 labs <- c("26°C", "28°C", "30°C")
 
-# make the plot
-bmin <- ggplot(newdata1) + 
-  geom_point(aes(newdata1$lda.LD1, newdata1$lda.LD2, 
-                 color = newdata1$Temp, 
-                 shape = newdata1$Ironconc), 
-                 size = 3.5) + 
-  theme_bw() +
-  labs(title = "Breviolum minutum",
-       x = "LD1",
-       y = "LD2") +
-  scale_color_manual(values = cols, breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"), name = "Temperature") +
-  scale_shape_manual(values = c(21,22,24),
-                name = "Bioavailable Iron \nConcentration (pM Fe')") +
-  theme(axis.text = element_text(size=12)) + 
-  theme(axis.title = element_text(size=12, face = "bold")) +
-  theme(plot.title = element_text(size=14, face = "bold.italic")) +
-  theme(legend.text = element_text(size=10),
-        panel.grid = element_blank()) + 
-  theme(legend.title = element_text(size=10, face="bold"), legend.title.align = 0) +
-  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
-               aes(newdata1$lda.LD1, newdata1$lda.LD2, fill = newdata1$Temp)) +  
-               scale_fill_manual(values = cols) + theme_cowplot()
-bmin
-
-#save_plot("FigS3A_bmin.pdf", bmin, base_aspect_ratio = 1.6)
-
 
 ##############
 ##################### 
@@ -518,43 +497,6 @@ newdata$Temp <- as.factor(newdata$Temp)
 newdata$Ironconc <- as.factor(newdata$Ironconc)
 
 
-# make the plot
-bpsyg <- ggplot(newdata) + 
-  geom_point(aes(newdata$lda.LD1, newdata$lda.LD2, 
-                 color = newdata$Temp, 
-                 shape = newdata$Ironconc), 
-                 size = 3.5) + 
-  theme_bw() +
-  labs(title = "Breviolum psygmophilum",
-       x = "LD1",
-       y = "LD2") +
-  scale_color_manual(values = cols, breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"), name = "Temperature") +
-  scale_shape_manual(values = c(21,22,24),
-                name = "Bioavailable Iron \nConcentration (pM Fe')") +
-  theme(axis.text = element_text(size=12)) + 
-  theme(axis.title = element_text(size=12, face = "bold")) +
-  theme(plot.title = element_text(size=14, face = "bold.italic")) +
-  theme(legend.text = element_text(size=10),
-        panel.grid = element_blank()) + 
-  theme(legend.title = element_text(size=10, face="bold"), legend.title.align = 0) +
-  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
-               aes(newdata$lda.LD1, newdata$lda.LD2, fill = newdata$Temp)) +  
-               scale_fill_manual(values = cols) + theme_cowplot()
-bpsyg
-
-bmin
-
-#save_plot("FigS3B_bpsyg.pdf", bpsyg, base_aspect_ratio = 1.6)
-
-# plot grid them together
-legend <- get_legend(bpsyg)
-
-brev <- plot_grid(bmin + theme(legend.position = "none"), bpsyg + theme(legend.position = "none"), legend, nrow=1)
-brev
-
-#save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig4A_um3_multivar.pdf",brev, nrow=1, ncol=2, base_aspect_ratio = 1.2)
-
-
 #### facet this plot (instead of making one scatter plot for bmin and one for bspyg). faceting makes life better
 # add a species column for faceting. newdata1 is Bmin, newdata is Bpsyg. *headdesk*
 newdata1$Species <- c("Breviolum minutum")
@@ -562,6 +504,7 @@ newdata$Species <- c("Breviolum psygmophilum")
 # rbind them together
 bothspp <- rbind(newdata, newdata1)
 
+### make figure 3!
 both <- ggplot(bothspp) + 
   geom_point(aes(bothspp$lda.LD1, bothspp$lda.LD2, 
                  color = bothspp$Temp, 
@@ -583,48 +526,6 @@ both <- ggplot(bothspp) +
                aes(bothspp$lda.LD1, bothspp$lda.LD2, fill = bothspp$Temp)) +  
                scale_fill_manual(values = cols) 
 both
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig4_um3_multivar.pdf",both, base_aspect_ratio = 1.9)
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig3_um3_multivar.pdf",both, base_aspect_ratio = 1.9)
 
 ```
-
-
-part 4: normalization of POC and PON to cell vol
-```{r}
-# this part of the script normalizes all of the metals to Particulate Organic Carbon (POC).
-# calculation info for the POC and Particulate Organic Nitrogen (PON) is in the excel file "poc_pon"
-
-library(data.table) # for function `fread`
-library(broom)      # for function `tidy`
-library(MASS)
-library(PMCMR)
-
-# read in the data
-dat <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/poc_pon.xlsx", sheet = "pocpon_forR")
-dat <- as.data.frame(dat)
-
-# normalize the POC and PON content to vol per cell
-# load the cell vol data back in
-volused <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
-
-#all$tmvol <- (all$mLTM*all$TotalVol)
-
-# calculate the number of cells used
-volused$cellvol_pocpon <- (volused$TotalVol*volused$mLPOCPON)
-
-# merge the data
-all <- merge(dat, volused, by = "sampleID")
-all <- as.data.frame(all)
-
-# now calculate C and N per uM3 cell
-all$C_Cell <- ((all$POC_uM/all$TotalVol)*1000)
-all$N_Cell <- ((all$PON_uM/all$TotalVol)*1000)
-
-# write out file with just sample info and N and C per cell
-all1 <- all[,c(1:5,16:17)]
-write_csv(all1, "POCPON_cell.csv")
-
-
-
-```
-
-
