@@ -5,9 +5,8 @@ date: "1/23/2020"
 output: html_document
 ---
 
-Elise & Artemis Keister analysed abundance of lipid classes on the iron*heat cultures. this is the first pass at figs/stats.
-
-visualize total lipids per samples. script updated 4/22/2020 to remove non total lipid content data. the file with the lipid classes analysis is in ~/summer 2018/culture_lipids
+lipid stats & figure s3
+Elise & Artemis Keister analysed lipid content of breviolum cultures. visualize total lipids per samples.
 ```{r}
 # set the working directory
 setwd("~/Desktop/PhD/summer 2018/culture_lipids/")
@@ -40,25 +39,7 @@ levels(tot$Species) <- c("B. minutum", "B. psygmophilum")
 tot$Ironconc <- factor(tot$Ironconc, levels =c("100", "50", "10"))
 levels(tot$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
 
-# box plot
-tot1 <- ggplot(data=tot, aes(x=Temp, y=total_lipid_no_outlier, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  labs(y="Total lipid (mg/cell)", x=element_blank(), title = "Total lipid/cell") +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold"),
-        strip.text.y = element_text(face = "bold.italic"),
-        legend.title = element_text(face = "bold"),
-        axis.text.x = element_text(angle=0),
-        axis.title = element_text(face = "bold"),
-        legend.position = "right") +
-  facet_grid(Species~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-tot1
-
-save_plot("lipid_cell.pdf", tot1, base_aspect_ratio = 1.6)
-
+# figure s3
 ## update to have the two species on the same row!
 # this is the one used for the manuscript!
 tot2 <- ggplot(data=tot, aes(x=Ironconc, y=total_lipid_no_outlier, fill=Species, color=Species)) +
