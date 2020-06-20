@@ -5,6 +5,7 @@ date: "1/21/2020"
 output: html_document
 ---
 
+stats & figures for fig s6 (macronutrient) contents
 
 ```{r}
 # jan 21 2020.
@@ -21,11 +22,45 @@ library(dplyr)
 library(reshape2)
 library(cowplot)
 
+#### part 1, calculate POC/cell & PON/cell
+# this part of the script normalizes all of the metals to Particulate Organic Carbon (POC).
+# calculation info for the POC and Particulate Organic Nitrogen (PON) is in the excel file "poc_pon"
+
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(MASS)
+library(PMCMR)
+
+# read in the data
+dat <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/poc_pon.xlsx", sheet = "pocpon_forR")
+dat <- as.data.frame(dat)
+
+# normalize the POC and PON content to vol per cell
+# load the cell vol data back in
+volused <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
+
+#all$tmvol <- (all$mLTM*all$TotalVol)
+
+# calculate the number of cells used
+volused$cellvol_pocpon <- (volused$TotalVol*volused$mLPOCPON)
+
+# merge the data
+all <- merge(dat, volused, by = "sampleID")
+all <- as.data.frame(all)
+
+# now calculate C and N per uM3 cell
+all$C_Cell <- ((all$POC_uM/all$TotalVol)*1000)
+all$N_Cell <- ((all$PON_uM/all$TotalVol)*1000)
+
+# write out file with just sample info and N and C per cell
+all1 <- all[,c(1:5,16:17)]
+write_csv(all1, "POCPON_cell.csv")
+
 # read in the metals (and phosphorus)
 metals <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/metallome_um3.xlsx", sheet = "formanova")
 # read in the poc and pon per cell
 metals <- as.data.frame(metals)
-cn <- read.csv("POCPON_cell_edit.csv", header = TRUE)
+cn <- read.csv("POCPON_cell.csv", header = TRUE)
 cn <- as.data.frame(cn)
 
 # make the dataset rbind'able (i.e., make sure factor levels & colnames will match)
@@ -48,13 +83,13 @@ allnuts$Temp <- as.factor(allnuts$Temp)
 
 # separate macro (so lame) and micronutrients. If anyone actually reads this github and agrees trace metals are the coolest but macronutrients get a disproportionate amount of fame, please tweet "Trace metals are the coolest & they MATTER for coral-algal symbiosis #SoMetal @HannahGReich" and I will buy you ice cream (make sure to tag me).
 macro <- dplyr::filter(allnuts, variable %in% c("POC", "PON", "Phosphorus"))
-micro <- dplyr::filter(allnuts, variable %in% c("Iron", "Copper", "Manganese", "Cobalt", "Nickel", "Zinc"))
 
 ### make a plot of the macronutrients, this is figure S6
 # change species labels
 macro$Species <- factor(macro$Species, levels = c("min", "psyg"))
 levels(macro$Species) <- c("B. minutum", "B. psygmphilum")
 
+# this is figure s6
 mac <- ggplot(data=macro, aes(x=Species, y=value, fill=Temp, color=Temp)) +
   geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
   theme_bw() +
