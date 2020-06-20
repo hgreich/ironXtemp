@@ -50,7 +50,7 @@ allnuts$Temp <- as.factor(allnuts$Temp)
 macro <- dplyr::filter(allnuts, variable %in% c("POC", "PON", "Phosphorus"))
 micro <- dplyr::filter(allnuts, variable %in% c("Iron", "Copper", "Manganese", "Cobalt", "Nickel", "Zinc"))
 
-### make a plot of the macronutrients
+### make a plot of the macronutrients, this is figure S6
 # change species labels
 macro$Species <- factor(macro$Species, levels = c("min", "psyg"))
 levels(macro$Species) <- c("B. minutum", "B. psygmphilum")
@@ -70,121 +70,8 @@ mac <- ggplot(data=macro, aes(x=Species, y=value, fill=Temp, color=Temp)) +
   scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
 mac
 
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig3_macronutrients.pdf", mac, base_aspect_ratio = 1.9)
-
-### best for last. metals!
-micro$Species <- factor(micro$Species, levels = c("min", "psyg"))
-levels(micro$Species) <- c("B. minutum", "B. psygmphilum")
-
-# option 1, all metals in boxplot form
-mic <- ggplot(data=micro, aes(x=Species, y=value, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  scale_y_continuous(labels = scales::scientific) +
-  labs(y="Metal/cell", x=element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        axis.text = element_text(size=6),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(size=6),
-        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
-        axis.title = element_text(face = "bold", size=8),
-        legend.position = "right",
-        panel.spacing = unit(0.25, "lines")) +
-  facet_grid(variable~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-mic
-
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option1_ALLBOX.pdf", mic, base_aspect_ratio = 1.6)
-
-# option 2, some metals in boxplot form. throw rest in supplement. Keep Iron, Manganese, Copper, Cobalt
-metals2 <- dplyr::filter(micro, variable %in% c("Iron", "Copper", "Manganese", "Cobalt"))
-metals2$variable = factor(metals2$variable, levels = c("Iron", "Copper", "Manganese", "Cobalt"))
-
-mic2 <- ggplot(data=metals2, aes(x=Species, y=value, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  scale_y_continuous(labels = scales::scientific) +
-  labs(y="Metal/cell", x=element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        axis.text = element_text(size=6),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(size=6),
-        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
-        axis.title = element_text(face = "bold", size=8),
-        legend.position = "right",
-        panel.spacing = unit(0.25, "lines")) +
-  facet_grid(variable~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-mic2
-
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option2_someBOX.pdf", mic2, base_aspect_ratio = 1.6)
-
-
-
-### split the metals up 3 (Fe, Cu, Mn) and 3 (Co, Ni, Zn)
-FeCuMn <- dplyr::filter(micro, variable %in% c("Iron", "Copper", "Manganese"))
-FeCuMn$variable = factor(FeCuMn$variable, levels = c("Iron", "Copper", "Manganese"))
-
-CoNiZn <- dplyr::filter(micro, variable %in% c("Cobalt", "Nickel", "Zinc"))
-CoNiZn$variable = factor(CoNiZn$variable, levels = c("Cobalt", "Nickel", "Zinc"))
-
-# first half box
-FeCuMn$Ironconc <- factor(FeCuMn$Ironconc, levels =c("500", "250", "50"))
-levels(FeCuMn$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
-
-mic7 <- ggplot(data=FeCuMn, aes(x=Species, y=value, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  scale_y_continuous(labels = scales::scientific) +
-  labs(y="Metal/cell", x=element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        axis.text = element_text(size=6),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(size=6),
-        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
-        axis.title = element_text(face = "bold", size=8),
-        legend.position = "right",
-        panel.spacing = unit(0.25, "lines")) +
-  facet_grid(variable~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-mic7
-
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option7_someBOX.pdf", mic7, base_aspect_ratio = 1.6)
-
-# second half box
-CoNiZn$Ironconc <- factor(CoNiZn$Ironconc, levels =c("500", "250", "50"))
-levels(CoNiZn$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
-
-mic8 <- ggplot(data=CoNiZn, aes(x=Species, y=value, fill=Temp, color=Temp)) +
-  geom_boxplot(alpha = 0.5, aes(colour = factor(Temp)), varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  scale_y_continuous(labels = scales::scientific) +
-  labs(y="Metal/cell", x=element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold", size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        strip.text.y = element_text(size=6, margin = margin(.08, .08, .08, .08, "cm")),
-        axis.text = element_text(size=6),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(size=6),
-        axis.text.x = element_text(angle=10, vjust=1, hjust =1, face = "italic"),
-        axis.title = element_text(face = "bold", size=8),
-        legend.position = "right",
-        panel.spacing = unit(0.25, "lines")) +
-  facet_grid(variable~Ironconc, scales = "free_y") +
-  scale_color_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C")) +
-  scale_fill_manual(values = c("#0072B2","#999999","#D55E00"), name = "Temperature", breaks = c("26", "28", "30"), labels=c("26°C", "28°C", "30°C"))
-mic8
-
-save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig2_metals_option8_someBOX.pdf", mic8, base_aspect_ratio = 1.6)
+# changes made in illustrator: y-axis was revised to include specific units. this wasn't done in R because POC & PON had different units from phosphorus.
+save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/FigS6_macronutrients.pdf", mac, base_aspect_ratio = 1.9)
 
 
 ```
