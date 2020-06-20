@@ -248,7 +248,72 @@ ggsave("FigS4_metal_um3.pdf", bbar, width = 6, height = 10, units = "in")
 
 ```
 
-part 3: multivariate figures and stats
+
+this is the figure for the metals normalized to Phos (Fig S5)
+```{r}
+#######################
+# make the figure
+
+# rename dataframe
+molP <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/metallome_molP.xlsx",
+      sheet = "formanova")
+
+# for the error bars
+pd <- position_dodge(0.1)
+
+# melt the data
+# the order of the measured variables is important for facet wrapping later
+melt2 <- melt(molP, id=c("Species", "Ironconc", "Temp", "TreatmentID"), measure.vars=c("Iron","Zinc","Manganese", "Copper", "Cobalt","Nickel"))
+melt2 <- as.data.frame(melt2)
+
+# rename factors so they are publication ready
+melt2$Species <- as.factor(melt2$Species)
+melt2$Species <- factor(melt2$Species, levels = c("m", "p"))
+levels(melt2$Species) <- c("B. minutum", "B. psygmophilum")
+# breviolum iron conc
+# this converts total dissolved iron concentrations (nM Fe) into bioavailable iron concentrations (pM Fe'). Briefly, Fe' values indicate the fraction of the total dissolved [Fe] that remain bioavailable after the addition of EDTA
+melt2$Ironconc <- as.factor(melt2$Ironconc)
+melt2$Ironconc <- factor(melt2$Ironconc, levels =c("500", "250", "50"))
+levels(melt2$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+melt2$TreatmentID <- as.factor(melt2$TreatmentID)
+melt2$variable <- as.factor(melt2$variable)
+melt2$variable <- factor(melt2$variable, levels = c("Iron", "Manganese", "Zinc", "Cobalt", "Copper", "Nickel"))
+
+# create a color blind palette
+cols <- c( "26" = "#0072B2", "28" = "#999999", "30" = "#D55E00")
+
+# remove missing data
+melt3 <- na.omit(melt2)
+
+# get summary stats
+stats <- melt3 %>% group_by(Ironconc, Species, Temp, variable, TreatmentID) %>% summarise_all(list(avg = mean, stdev = sd))
+
+stats$Temp <- as.factor(stats$Temp)
+
+# make the bar graph
+bbar1 <- ggplot(data=stats, aes(x = Species, y=avg, fill=Temp)) +
+  geom_bar(stat = "identity", position = position_dodge2(preserve = "single")) +
+  geom_errorbar(aes(ymin=avg-stdev, ymax=avg+stdev), width=0.9, colour="black", position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=20, vjust=1, hjust=1), axis.title.x = element_blank()) +
+  facet_grid(variable~Ironconc, scales = "free") + 
+  theme(axis.text.y = element_text(size=12),
+        panel.grid = element_blank()) +
+  theme(axis.text.x = element_text(size=12, face = "italic")) +
+  theme(axis.title = element_text(size=16, face = "bold")) +  
+  theme(legend.text = element_text(size=14)) + 
+  theme(legend.title = element_text(size=14, face = "bold")) +
+  labs(y=expression(bold(mmol~metal~mol~P^-1)), x="Species") +
+  theme(legend.position = "bottom")  +
+  theme(strip.text = element_text(size=12, face = "bold",margin = margin(.15, .15, .15, .15, "cm"))) +
+  scale_fill_manual(values = cols, name = "Temperature", breaks = c("26", "28", "30"), labels=c("26 °C", "28 °C", "30 °C")) +
+  scale_x_discrete()  
+bbar1
+
+ggsave("Figx_metal_molP.pdf", bbar1, width = 6, height = 10, units = "in")
+```
+
+multivariate figures and stats
 ```{r}
 # load for mosaic plots
 library(ggmosaic)
