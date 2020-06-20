@@ -38,7 +38,7 @@ bmean <- b %>% group_by(species, ironconc, temp) %>% summarise(mean = mean(slope
 bmean <- as.data.frame(bmean)
 
 # create a color blind palette
-cols <-c( "t26" = "#0072B2", "t28" = "#999999", "t30" = "#D55E00")
+cols <-c( "t26" = "black", "t28" = "grey", "t30" = "white")
 labs <- c("26", "28", "30")
 
 # make species and iron concentration treatment factors so the labels are paper-ready
