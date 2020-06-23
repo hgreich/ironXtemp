@@ -81,7 +81,7 @@ metal_melt <- reshape2::melt(metals, id.vars = c("sample_ID", "Species", "Ironco
 allnuts <- rbind(cn_melt, metal_melt)
 allnuts$Temp <- as.factor(allnuts$Temp)
 
-# separate macro (so lame) and micronutrients. If anyone actually reads this github and agrees trace metals are the coolest but macronutrients get a disproportionate amount of fame, please tweet "Trace metals are the coolest & they MATTER for coral-algal symbiosis #SoMetal @HannahGReich" and I will buy you ice cream (make sure to tag me).
+# separate out macronutrients
 macro <- dplyr::filter(allnuts, variable %in% c("POC", "PON", "Phosphorus"))
 
 ### make a plot of the macronutrients, this is figure S6
