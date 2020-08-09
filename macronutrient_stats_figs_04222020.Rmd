@@ -49,8 +49,8 @@ all <- merge(dat, volused, by = "sampleID")
 all <- as.data.frame(all)
 
 # now calculate C and N per uM3 cell
-all$C_Cell <- ((all$POC_uM/all$TotalVol)*1000)
-all$N_Cell <- ((all$PON_uM/all$TotalVol)*1000)
+all$C_Cell <- ((all$POC_uM/all$cellvol_pocpon)*1000)
+all$N_Cell <- ((all$PON_uM/all$cellvol_pocpon)*1000)
 
 # write out file with just sample info and N and C per cell
 all1 <- all[,c(1:5,16:17)]
