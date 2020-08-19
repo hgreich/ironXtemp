@@ -6,6 +6,8 @@ output: html_document
 ---
 
 ```{r}
+## For Figs 2 & S2 (and corresponding stats)
+
 # set the working directory
 setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/")
 
