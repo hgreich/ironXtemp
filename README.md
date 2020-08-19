@@ -20,6 +20,10 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 mL1 cell). 
 
+**POCPON_cell.csv** Csv file with POC and PON data normalized to cell volume harvested.
+
+**lipid_quant.csv** Excel file with total lipid content for each triplicate replicate
+
 ### Code for figures & stats
 **Fig1_specific_growth.Rmd** Rmarkdown file for figure 1 (specific growth for Breviolum spp at various [Fe] & temperatures). Calls upon the "spgrowth_r" sheet in cell_density.xlsx
 
