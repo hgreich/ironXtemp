@@ -7,7 +7,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 ### Below, please a brief overview of each file and the abstract. Feel free to reach out w/ questions anytime via email: hgreich16 [at] gmail [dot] com
 
 ## General remarks 
-**Species Abbreviations**: min/bmin/m = Breviolum minutum; psyg/psygmo/bpsyg/b = Breviolum psygmophilum
+**Species Abbreviations**: min/bmin/bm/m = Breviolum minutum; psyg/psygmo/bpsyg/bp/b = Breviolum psygmophilum
 
 **Iron concentration abbreviations** The data files use the total desolved iron concentrations throughout. the treatments are referred to by their bioavailable iron concentrations (pM Fe') which makes the study comparable to others.  "With the addition of EDTA 50, 250, and 500 pM Fe' are bioavailable, which corresponded to the total dissolved iron concentrations 10, 50, and 100 nM Fe, respectively (Rodriguez et al., 2016). Hereafter, the iron concentrations will be referred to by their inorganic or bioavailable (Fe') concentrations so that they correspond to other Symbiodiniaceae culture experiments in literature (Rodriguez et al., 2016, Rodriguez & Ho, 2017, Rodriguez & Ho, 2018, Reich et al., 2020)."
 
