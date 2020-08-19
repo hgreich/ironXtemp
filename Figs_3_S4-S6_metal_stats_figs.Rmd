@@ -1,18 +1,15 @@
 ---
-title: "FigS2_thru_S3_metalsum3"
+title: "METALZ"
 author: "Hannah Reich"
 date: "July 15, 2019"
 output: html_document
 ---
 
 script updated 04/22/2020. removed P & C normalizations because P & C fluctuate with temperature. 
-has stats & figs for figures 3, S4, and S5
+has stats & figs for figures 3, S4 thru S5
 
 
 ```{r}
-# figures S2 & S3
-# um3 per cell normalized metal data
-# July 2019 for coauthors
 
 # set the working directory
 setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/code/")
