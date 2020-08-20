@@ -18,7 +18,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **hplc_fire_results_git.xlsx** Excel file with raw photophysiology data for each triplicate replicate. FIRe data analyses includes PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1. Data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript. This also file includes max+min flourescence (Fo, Fm) etc for transparency. Metadata matches the other spreadsheets so they can be joined with dplyr when normalizing measurements (i.e., normalizing chla in this sheet to cell vol used for harvest in the cell_density "vol" sheet).
 
-**metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 mL1 cell). 
+**metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 cells harvested). 
 
 **POCPON_cell.csv** Csv file with POC and PON data normalized to cell volume harvested.
 
@@ -31,7 +31,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_content.xlsx". 
 
-**Fig_S1_pH/Rmd** Rmarkdown file for figure S1 (pH for Breviolum spp at various [Fe] & temperatures). Calls upon the "pH" sheet in "cell_density.xlsx"
+**Fig_S1_pH.Rmd** Rmarkdown file for figure S1 (pH for Breviolum spp at various [Fe] & temperatures). Calls upon the "pH" sheet in "cell_density.xlsx"
 
 **Fig_S3_total_lipid.Rmd** Rmarkdown file for figure S3 and corresponding statistics (lipid content for Breviolum spp at various [Fe] & temperatures). Calls upon "lipid_quant.xlsx"
 
