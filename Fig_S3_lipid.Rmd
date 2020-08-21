@@ -5,9 +5,11 @@ date: "1/23/2020"
 output: html_document
 ---
 
-Elise & Artemis Keister analysed abundance of lipid classes on the iron*heat cultures. this is the first pass at figs/stats.
+Elise & Artemis Keister analysed abundance of lipid classes on the ironXheat cultures. this is the first pass at figs/stats.
 
 visualize total lipids per samples. script updated 4/22/2020 to remove non total lipid content data. the file with the lipid classes analysis is in ~/summer 2018/culture_lipids
+
+the final units is mg lipid cell^-1
 ```{r}
 # set the working directory
 setwd("~/Desktop/PhD/summer 2018/culture_lipids/")
