@@ -68,7 +68,7 @@ levels(tot$Temp) <- c("26 °C", "28 °C", "30 °C")
 ## update to have the two species on the same row!
 # this is the one used for the manuscript!
 tot2 <- ggplot(data=tot, aes(x=Ironconc, y=total_lipid_no_outlier, fill=Species, color="black")) +
-  geom_boxplot(alpha = 0.7, color="black",varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  geom_boxplot(alpha = 0.4, color="black",varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
   theme_bw() +
   labs(y="Total lipid (mg/cell)", x=element_blank(), title = element_blank()) +
   theme(panel.grid = element_blank(),
