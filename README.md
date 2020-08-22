@@ -18,11 +18,11 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **fire_results_git.xlsx** Excel file with raw photophysiology data for each triplicate replicate. FIRe data analyses includes PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1. Data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript. This also file includes max+min flourescence (Fo, Fm) etc for transparency. Metadata matches the other spreadsheets so they can be joined with dplyr when normalizing measurements.
 
-**chla_data_git.xlsx** Excel file with raw chla data (ug/L, "raw_data" sheet) and output from calculations (converts to pg/cell, "calc_Routput")
+**chla_data_git.xlsx** Excel file with raw chla data (ug/L, "raw_data" sheet) and output from calculations (converts to pg/cell, "calc_Routput"). The bolded "pg_chla_cell" column in the "calc_Routput" is the data used for stats & figures
 
 **metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 cells harvested). 
 
-**POCPON_cell.csv** Csv file with POC and PON data normalized to cell volume harvested.
+**POCPON_cell.csv** Csv file with POC and PON data normalized to cell volume harvested. The bolded "pg_POC_cell" and "pg_PON_cell" columns in the "pocpon_calc_Routput" is the data used for stats & figures
 
 **lipid_quant.xlsx** Excel file with total lipid content for each triplicate replicate
 
