@@ -1,12 +1,12 @@
 ---
-title: "fire_chla_stats_02032020"
+title: "fire_stats_02032020"
 author: "Hannah Reich"
 date: "2/3/2020"
 output: html_document
 ---
 
 ```{r}
-## For Figs 2 & S2 (and corresponding stats)
+## For Fig 2 (& corresponding stats)
 
 # set the working directory
 setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/")
@@ -212,81 +212,5 @@ btau <- ggplot(btavg, aes(x=Temp, y=value_avg, fill = Temp)) +
 btau
 save_plot("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/figs/figs_v4_01212020/Fig6_Tau.pdf", btau, base_aspect_ratio = 1.6)
 
-```
-
-```{r}
-# Figure 6
-# this part normalizes hplc pigment content to total breviolum volume harvested (new units ug/L per um3/cell)
-
-# read back in the pigment data
-pig <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/hplc_fire_results_git.xlsx", sheet = "data")
-
-# load the cell vol data back in
-volused <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
-
-# calculate the number of cells used
-volused$cellspig <- (volused$CellDensity*volused$mLpigment)
-volused$cellvolpig <- (volused$cellspig*volused$VolPerCell)
-
-# merge the data
-all <- merge(pig, volused, by = "sampleID")
-all$Chlorophyll_A_CELL <- (all$Chlorophyll_A/all$cellvolpig)  
-all$Temp <- as.factor(all$Temp)
-all$Ironconc <- as.factor(all$Ironconc)
-all$treatmentID.x <- as.factor(all$treatmentID.x)
-
-all$species <- factor(all$species, levels = c("min", "psyg"))
-levels(all$species) <- c("B. minutum", "B. psygmophilum")
-all$Ironconc <- factor(all$Ironconc, levels =c("100", "50", "10"))
-levels(all$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
-
-# make a plot
- # box plot with species next to one another
-chla1 <- ggplot(data=all, aes(x=Ironconc, y=Chlorophyll_A_CELL, fill=species, color= "black")) +
-  geom_boxplot(alpha = 0.7, color = "black", varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  labs(y="ug/L per um3/cell", x=element_blank(), title = "Chlorophyll a content") +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold"),
-        strip.text.y = element_text(face = "bold.italic"),
-        legend.title = element_text(face = "bold"),
-        legend.text = element_text(face = "italic"),
-        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
-        axis.title = element_text(face = "bold"),
-        legend.position = "bottom") +
-  facet_grid(~Temp, scales = "fixed") +
-  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
-chla1
-save_plot("FigS2_chla_v2.pdf", chla1 ,base_aspect_ratio = 1.6)
-# illustrator edits: edit y-axis to have propper greek letters & superscripts; make sure "a" in title is italicized
-
-## by species
-kruskal.test(all$Chlorophyll_A_CELL, all$species)
-
-# make objects for min and psyg
-bm <- all %>% filter(species %in% c("B. minutum"))
-bp <- all %>% filter(species %in% c("B. psygmophilum"))
-
-# normality tests
-shapiro.test(bm$Chlorophyll_A_CELL)
-shapiro.test(bp$Chlorophyll_A_CELL)
-
-# KW test
-kruskal.test(bm$Chlorophyll_A_CELL, bm$Temp)
-kruskal.test(bm$Chlorophyll_A_CELL, bm$Ironconc)
-kruskal.test(bp$Chlorophyll_A_CELL, bp$Temp)
-kruskal.test(bp$Chlorophyll_A_CELL, bp$Ironconc)
-
-# post hoc by iron
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Ironconc, data = bm, p.adjust.methods = "fdr")
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Ironconc, data = bp, p.adjust.methods = "fdr")
-
-# post hoc by temp
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Temp, data = bm, p.adjust.methods = "fdr")
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~Temp, data = bp, p.adjust.methods = "fdr")
-
-# post hoc by treatment ID
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~treatmentID.x, data = bm, p.adjust.methods = "fdr")
-posthoc.kruskal.dunn.test(Chlorophyll_A_CELL~treatmentID.x, data = bp, p.adjust.methods = "fdr")
 ```
 
