@@ -51,7 +51,7 @@ levels(dat$Temp) <- c("26 °C", "28 °C", "30 °C")
 
 # make the boxplot
 chla1 <- ggplot(data=dat, aes(x=Ironconc, y=pg_chla_cell, fill=species, color= "black")) +
-  geom_boxplot(alpha = 0.7, color = "black", varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  geom_boxplot(alpha = 0.4, color = "black", varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
   theme_bw() +
   labs(y="pg chla cell-1", x=element_blank(), title = "Chlorophyll a content") +
   theme(panel.grid = element_blank(),
