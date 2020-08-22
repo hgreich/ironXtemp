@@ -1,0 +1,102 @@
+---
+title: "chla_calc_stats_figs"
+author: "Hannah Reich"
+date: "8/22/2020"
+output: html_document
+---
+
+this script is for figure S2 and corresponding stats.
+1) convert ug/L chla to pg chla/cell
+2) make box plot
+3) do stats
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/unit_corrections_08212020/")
+
+# load the packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(PMCMR)
+library(cowplot)
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(reshape2)
+library(tidyr)
+
+#### convert the data from ug/L chla to pg chla/cell
+dat <- read_excel("chla_data_git.xlsx", sheet = "raw_data")
+dat$L_chla <- (dat$mLpigment/1000) # covert mL of media used to L of media by dividing by 1000
+dat$total_chla_ug <- (dat$L_chla*dat$Chlorophyll_A_ugL) # get the total [chla] ug by multiplying the ug/L chla by L of media used
+dat$cellsused <- (dat$CellDensity*dat$mLpigment) # get total cells used for pellet by multiplying cell density by total aliquot volume
+dat$ug_chla_cell <- (dat$total_chla_ug/dat$cellsused) #normalize ug chla/ cell
+dat$pg_chla_cell <- (dat$ug_chla_cell*1e+06)# convert to pg chla/cell for friendlier numbers (multiply by 10^6)
+
+# save as a csv
+write.csv(dat, "chla_calc_Rout.csv")
+
+### Make figure S2
+
+# make sure the factors are ready
+dat$Temp <- as.factor(dat$Temp)
+dat$Ironconc <- as.factor(dat$Ironconc)
+dat$treatmentID <- as.factor(dat$treatmentID)
+dat$species <- factor(dat$species, levels = c("min", "psyg"))
+levels(dat$species) <- c("B. minutum", "B. psygmophilum")
+dat$Ironconc <- factor(dat$Ironconc, levels =c("100", "50", "10"))
+levels(dat$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+dat$Temp <- factor(dat$Temp, levels =c("26", "28", "30"))
+levels(dat$Temp) <- c("26 °C", "28 °C", "30 °C")
+
+# make the boxplot
+chla1 <- ggplot(data=dat, aes(x=Ironconc, y=pg_chla_cell, fill=species, color= "black")) +
+  geom_boxplot(alpha = 0.7, color = "black", varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="pg chla cell-1", x=element_blank(), title = "Chlorophyll a content") +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold.italic"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "fixed") +
+#  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+chla1
+save_plot("FigS2_chla.pdf", chla1 ,base_aspect_ratio = 1.6) # things that were changed in illustrator: italicized the 'a' in chla and superscript in units
+
+## by species
+kruskal.test(dat$pg_chla_cell, dat$species)
+
+# make objects for min and psyg
+bm <- dat %>% filter(species %in% c("B. minutum"))
+bp <- dat %>% filter(species %in% c("B. psygmophilum"))
+
+# normality tests
+shapiro.test(bm$pg_chla_cell)
+shapiro.test(bp$pg_chla_cell)
+
+# KW test
+kruskal.test(bm$pg_chla_cell, bm$Temp)
+kruskal.test(bm$pg_chla_cell, bm$Ironconc)
+kruskal.test(bp$pg_chla_cell, bp$Temp)
+kruskal.test(bp$pg_chla_cell, bp$Ironconc)
+
+# post hoc by iron
+posthoc.kruskal.dunn.test(pg_chla_cell~Ironconc, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(pg_chla_cell~Ironconc, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by temp
+posthoc.kruskal.dunn.test(pg_chla_cell~Temp, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(pg_chla_cell~Temp, data = bp, p.adjust.methods = "fdr")
+
+# post hoc by treatment ID
+posthoc.kruskal.dunn.test(pg_chla_cell~treatmentID, data = bm, p.adjust.methods = "fdr")
+posthoc.kruskal.dunn.test(pg_chla_cell~treatmentID, data = bp, p.adjust.methods = "fdr")
+
+
+```
+
