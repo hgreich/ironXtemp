@@ -16,7 +16,9 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 ### Data files
 **cell_density.xlsx** Excel file with raw cell count data (raw_cellden sheet). Cell densities were calculated with a beckman coulter counter for 2 Breviolum species exposed to 3 iron concentrations and 3 temperatures. Other important sheets include "spgrowth_r" and "spgrowth_calc" - these are the sheets for the specific growth figure (Fig 1) and calculations (respectively). The "pH" sheet includes the pH data for each treatment at various growth stages (used for Fig S1). The "vol" sheet includes the cell density, cell volume, and volume (mL) of aliquot for the various analyses (trace metal, pigment, POC & PON) for each triplicate replicate.
 
-**hplc_fire_results_git.xlsx** Excel file with raw photophysiology data for each triplicate replicate. FIRe data analyses includes PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1. Data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript. This also file includes max+min flourescence (Fo, Fm) etc for transparency. Metadata matches the other spreadsheets so they can be joined with dplyr when normalizing measurements (i.e., normalizing chla in this sheet to cell vol used for harvest in the cell_density "vol" sheet).
+**fire_results_git.xlsx** Excel file with raw photophysiology data for each triplicate replicate. FIRe data analyses includes PSII (photosystem) cross section absorption (σPSII/sigma), PSII photochemical efficiency (Fv/Fm), and connectivity factory (p aka p_conn), and electron re-oxidation rate of QA (quencher/quinone pool A, Tau, τQA aka TauAv1. Data are blank corrected and results were generated using FirePro software. Info on acquisition of blank, etc are described in the manuscript. This also file includes max+min flourescence (Fo, Fm) etc for transparency. Metadata matches the other spreadsheets so they can be joined with dplyr when normalizing measurements.
+
+**chla_data_git.xlsx** Excel file with raw chla data (ug/L, "raw_data" sheet) and output from calculations (converts to pg/cell, "calc_Routput")
 
 **metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 cells harvested). 
 
@@ -27,11 +29,13 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 ### Code for figures & stats
 **Fig_1_specific_growth.Rmd** Rmarkdown file for figure 1 (specific growth for Breviolum spp at various [Fe] & temperatures). Calls upon the "spgrowth_r" sheet in cell_density.xlsx
 
-**Figs_2_S2_fire_chla_stats_figs.Rmd** Rmarkdown file for figures involving photophys - figs 2 and S2 (and corresponding stats). Both stats and figures call upon "hplc_fire_results_git.xlsx". The information of volume & number of cells used for Fig S2 calls upon the "vol" sheet in "cell_density.xlsx". 
+**Figs_2_S2_fire_stats_figs.Rmd** Rmarkdown file for figures involving photophys - figs 2 (and corresponding stats). Both stats and figures call upon "fire_results_git.xlsx".
 
 **Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_content.xlsx". 
 
 **Fig_S1_pH.Rmd** Rmarkdown file for figure S1 (pH for Breviolum spp at various [Fe] & temperatures). Calls upon the "pH" sheet in "cell_density.xlsx"
+
+**Fig_S2_chla_calc_stats.Rmd** Rmarkdown file for figure S2 (chla at various [Fe] & temps) and corresponding stats. Calls upon "raw_data" sheet from "chla_data_git.xlsx." Converts chla from ug/L (culture media) to pg/cell. Output of calculations is in the "calc_Routput" sheet of the same excel file.
 
 **Fig_S3_total_lipid.Rmd** Rmarkdown file for figure S3 and corresponding statistics (lipid content for Breviolum spp at various [Fe] & temperatures). Calls upon "lipid_quant.xlsx"
 
