@@ -33,7 +33,7 @@ library(plyr)
 library(ggmosaic)
 library(dunn.test)
 
-#### convert the data from uM POC and PON to pg/cell
+#### convert the data from nM metal and phosphorus to pg/cell
 # read in the data
 dat <- read_excel("metal_data_git.xlsx", sheet = "raw_data")
 
