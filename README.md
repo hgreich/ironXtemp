@@ -20,7 +20,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **chla_data_git.xlsx** Excel file with raw chla data (ug/L, "raw_data" sheet) and output from calculations (converts to pg/cell, "calc_Routput"). The bolded "pg_chla_cell" column in the "calc_Routput" is the data used for stats & figures
 
-**metal_content.xlsx** Excel file with metal (and phosphorus) content data (nM metal per um3 cells harvested). 
+**metal_data_git.xlsx** Excel file with metal (and phosphorus) content data. The "raw_data" sheet has raw data (nM metal, already internal standard and blank corrected). The "metal_calc_Routput" sheet converts from nM to pg/cell. The bolded "pg_metal_cell" columns in the "metal_calc_Routput" sheet contain the data used for stats & figs. 
 
 **POCPON_cell.csv** Csv file with POC and PON data normalized to cell volume harvested. The bolded "pg_POC_cell" and "pg_PON_cell" columns in the "pocpon_calc_Routput" is the data used for stats & figures
 
@@ -31,7 +31,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **Figs_2_S2_fire_stats_figs.Rmd** Rmarkdown file for figures involving photophys - figs 2 (and corresponding stats). Both stats and figures call upon "fire_results_git.xlsx".
 
-**Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_content.xlsx". 
+**Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_data_git.xlsx". 
 
 **Fig_S1_pH.Rmd** Rmarkdown file for figure S1 (pH for Breviolum spp at various [Fe] & temperatures). Calls upon the "pH" sheet in "cell_density.xlsx"
 
@@ -39,7 +39,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **Fig_S3_total_lipid.Rmd** Rmarkdown file for figure S3 and corresponding statistics (lipid content for Breviolum spp at various [Fe] & temperatures). Calls upon "lipid_quant.xlsx"
 
-**Fig_S6_macronutrient_stats_figs.Rmd** Rmarkdown file for figure S6 and corresponding statistics (POC, PON, and Phosphorus for Breviolum spp at various [Fe] & temperatures). Calls upon "POCPON_cell.csv" and "metal_content.xlsx"
+**Fig_S6_macronutrient_stats_figs.Rmd** Rmarkdown file for figure S6 and corresponding statistics (POC, PON, and Phosphorus for Breviolum spp at various [Fe] & temperatures). Calls upon "POCPON_cell.csv" and "metal_data_git.xlsx"
 
 ## Abstract
 Warming and nutrient limitation are stressors known to weaken the health of microalgae. In situations of stress, access to energy reserves can minimize physiological damage. Because of its widespread requirements in biochemical processes, iron is an important trace metal; especially for photosynthetic organisms. Lowered iron availability in oceans experiencing rising temperatures may contribute to the thermal sensitivity of reef-building corals, which rely on mutualisms with dinoflagellates to survive. To test the influence of iron concentration on thermal sensitivity, the physiological responses of cultured symbiotic dinoflagellates (genus Breviolum; family Symbiodiniaceae) were evaluated when exposed to increasing temperatures and a range of iron concentrations. Declines in photosynthetic efficiency at elevated temperatures indicated sensitivity to heat stress. Furthermore, five times the amount of iron was needed to reach exponential growth during heat stress (50 pM Fe' at 26-28 ºC versus 250 pM Fe' at 30 ºC). In treatments where exponential growth was reached, Breviolum psygmophilum grew faster than B. minutum, possibly due to greater changes in the cellular content of trace metals. The metal composition of B. psygmophilum shifted only at the highest temperature (30 ºC), whereas changes in B. minutum were observed at lower temperatures (28 ºC). The influence of iron availability in modulating each alga’s response to thermal stress suggests the importance of trace metals to the health of coral-algal mutualisms. Ultimately, a greater ability to acquire scarce metals may improve the tolerance of corals to physiological stressors; and contribute to the differences in performance associated with hosting one symbiont species over another.
