@@ -1,0 +1,123 @@
+---
+title: "Fig_S6_pocpon_calc_stats_fig"
+author: "Hannah Reich"
+date: "8/22/2020"
+output: html_document
+---
+
+this script is for figure S6 and corresponding stats.
+1) make box plot (combine with Phosphorus data)
+2) do stats
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/unit_corrections_08212020/")
+
+# load the packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(PMCMR)
+library(cowplot)
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(reshape2)
+library(tidyr)
+
+#### convert the data from uM POC and PON to pg/cell
+# read in the data
+dat <- read_excel("pocpon_data_git.xlsx")
+
+## Make the figure
+### Make figure S2
+
+# make sure the factors are ready
+dat$Temp <- as.factor(dat$Temp)
+dat$Ironconc <- as.factor(dat$Ironconc)
+dat$treatmentID <- as.factor(dat$treatmentID)
+dat$Species <- factor(dat$Species, levels = c("min", "psyg"))
+levels(dat$Species) <- c("B. minutum", "B. psygmophilum")
+dat$Ironconc <- factor(dat$Ironconc, levels =c("100", "50", "10"))
+levels(dat$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+dat$Temp <- factor(dat$Temp, levels =c("26", "28", "30"))
+levels(dat$Temp) <- c("26 °C", "28 °C", "30 °C")
+
+# melt the data for facetwrap
+melt <- reshape2::melt(dat, id.vars = c("Temp", "Ironconc", "treatmentID", "sampleID", "Species"), measure.vars = c("POC_pg_cell", "PON_pg_cell"))
+
+# load in the phosphorus, make sure the species, iron & temp factor levels match
+phos <- read_excel("metal_data_git.xlsx", sheet = "metal_calc_Routput")
+phos_melt <- reshape2::melt(phos, id.vars = c("Temp", "Ironconc", "treatmentID", "sampleID", "Species"), measure.vars = c("Phosphorus_pg_cell"))
+phos_melt$Species <- factor(phos_melt$Species, levels = c("min", "psyg"))
+levels(phos_melt$Species) <- c("B. minutum", "B. psygmophilum")
+phos_melt$Ironconc <- factor(phos_melt$Ironconc, levels =c("100", "50", "10"))
+levels(phos_melt$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+phos_melt$Temp <- factor(phos_melt$Temp, levels =c("26", "28", "30"))
+levels(phos_melt$Temp) <- c("26 °C", "28 °C", "30 °C")
+
+# rbind the datasets together
+cnp_dat <- rbind(phos_melt, melt)
+# make the C/N/P factor levels not ugly
+cnp_dat$variable <- factor(cnp_dat$variable, levels =c("POC_pg_cell", "PON_pg_cell", "Phosphorus_pg_cell"))
+levels(cnp_dat$variable) <- c("Carbon", "Nitrogen", "Phosphorus")
+cnp_dat$Species <- as.factor(cnp_dat$Species)
+cnp_dat$Ironconc <- as.factor(cnp_dat$Ironconc)
+cnp_dat$Temp <- as.factor(cnp_dat$Temp)
+
+# make the boxplot
+cnp <- ggplot(data=cnp_dat, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="pg cell-1", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(face = "italic", size=8),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+cnp
+save_plot("Fig_S6_pocpon_phos.pdf", cnp ,base_aspect_ratio = 1.4)
+
+## Run stats
+### phosphorus stats are in the "Fig_3_S4_S5_METAL_calc_stats_figs.Rmd file (because the Phos data is produced simultaneously with HR-ICPMS)"
+
+dat$treatmentID <- as.factor(dat$treatmentID)
+dat$Temp <- as.factor(dat$Temp)
+dat$Ironconc <- as.factor(dat$Ironconc)
+dat$Species <- as.factor(dat$Species)
+# make the sp-specific objects
+min_dat <- filter(dat, Species %in% c("B. minutum"))
+psyg_dat <- filter(dat, Species %in% c("B. psygmophilum"))
+### PON 
+shapiro.test(min_dat$PON_pg_cell)
+shapiro.test(psyg_dat$PON_pg_cell)
+kruskal.test(min_dat$PON_pg_cell, min_dat$treatmentID)
+kruskal.test(min_dat$PON_pg_cell, min_dat$Temp)
+kruskal.test(min_dat$PON_pg_cell, min_dat$Ironconc)
+kruskal.test(psyg_dat$PON_pg_cell, psyg_dat$treatmentID)
+kruskal.test(psyg_dat$PON_pg_cell, psyg_dat$Temp)
+kruskal.test(psyg_dat$PON_pg_cell, psyg_dat$Ironconc)
+posthoc.kruskal.dunn.test(PON_pg_cell~treatmentID, data = min_dat, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(PON_pg_cell~treatmentID, data = psyg_dat, p.adjust.method = "fdr")
+### POC
+shapiro.test(min_dat$POC_pg_cell)
+shapiro.test(psyg_dat$POC_pg_cell)
+kruskal.test(min_dat$POC_pg_cell, min_dat$treatmentID)
+kruskal.test(min_dat$POC_pg_cell, min_dat$Temp)
+kruskal.test(min_dat$POC_pg_cell, min_dat$Ironconc)
+kruskal.test(psyg_dat$POC_pg_cell, psyg_dat$treatmentID)
+kruskal.test(psyg_dat$POC_pg_cell, psyg_dat$Temp)
+kruskal.test(psyg_dat$POC_pg_cell, psyg_dat$Ironconc)
+posthoc.kruskal.dunn.test(POC_pg_cell~treatmentID, data = min_dat, p.adjust.method = "fdr")
+posthoc.kruskal.dunn.test(POC_pg_cell~treatmentID, data = psyg_dat, p.adjust.method = "fdr")
+# between species
+kruskal.test(dat$POC_pg_cell, dat$Species)
+kruskal.test(dat$PON_pg_cell, dat$Species)
+
+```
+
