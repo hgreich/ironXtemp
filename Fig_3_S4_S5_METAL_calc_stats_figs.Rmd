@@ -1,0 +1,616 @@
+---
+title: "Fig_3_S4_S5_METAL_calc_stats_figs"
+author: "Hannah Reich"
+date: "8/22/2020"
+output: html_document
+---
+
+Best part! this script is for figures 3, S4, S5 and corresponding stats.
+1) convert nM metal and phos to pg/cell
+2) make box plots
+3) do stats
+#SoMetal #ThankYouTraceMetals :-)
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/unit_corrections_08212020/")
+
+# load the packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(PMCMR)
+library(cowplot)
+library(data.table) # for function `fread`
+library(broom)      # for function `tidy`
+library(reshape2)
+library(tidyr)
+library(MASS)
+library(tidyr)
+library(Hmisc)
+library(outliers)
+library(plyr)
+library(ggmosaic)
+library(dunn.test)
+
+#### convert the data from uM POC and PON to pg/cell
+# read in the data
+dat <- read_excel("metal_data_git.xlsx", sheet = "raw_data")
+
+# do the math
+
+# convert nM to M  (divide by 1,000,000,000)
+dat$M_Phosphorus <- (dat$nM_Phosphorus/1000000000)
+dat$M_Manganese <- (dat$nM_Manganese/1000000000) 
+dat$M_Iron <- (dat$nM_Iron/1000000000)
+dat$M_Cobalt <- (dat$nM_Cobalt/1000000000)
+dat$M_Nickel <- (dat$nM_Nickel/1000000000)
+dat$M_Copper <- (dat$nM_Copper/1000000000)
+dat$M_Zinc <- (dat$nM_Zinc/1000000000)
+
+# multiply  by 0.015 L, (this is the ((dilution factor 10 mL for icpms * the original volume 1.5mL of conc harvest in 30% HNO3)/ 1000 to get to L)
+dat$mol_Phosphorus <- (dat$M_Phosphorus*0.015)
+dat$mol_Manganese <- (dat$M_Manganese*0.015) 
+dat$mol_Iron <- (dat$M_Iron*0.015)
+dat$mol_Cobalt <- (dat$M_Cobalt*0.015)
+dat$mol_Nickel <- (dat$M_Nickel*0.015)
+dat$mol_Copper <- (dat$M_Copper*0.015)
+dat$mol_Zinc <- (dat$M_Zinc*0.015)
+
+# get atomic weight (ug)
+dat$ug_Phosphorus <- (dat$mol_Phosphorus*30.97*10^6)
+dat$ug_Manganese <- (dat$mol_Manganese*54.94*10^6)
+dat$ug_Iron <- (dat$mol_Iron*55.85*10^6)
+dat$ug_Cobalt <- (dat$mol_Cobalt*58.93*10^6)
+dat$ug_Nickel <- (dat$mol_Nickel*58.69*10^6)
+dat$ug_Copper <- (dat$mol_Copper*63.55*10^6)
+dat$ug_Zinc <- (dat$mol_Zinc*65.38*10^6)
+
+# get the total # of cells in aliquot
+dat$cellsused <- (dat$Cells_per_ML*dat$mL_used_TM)
+
+# divide weight (ug) by cells used to get ug/cell
+dat$Phosphorus_ug_cell <- (dat$ug_Phosphorus/dat$cellsused)
+dat$Manganese_ug_cell <- (dat$ug_Manganese/dat$cellsused)
+dat$Iron_ug_cell <- (dat$ug_Iron/dat$cellsused)
+dat$Cobalt_ug_cell <- (dat$ug_Cobalt/dat$cellsused)
+dat$Nickel_ug_cell <- (dat$ug_Nickel/dat$cellsused)
+dat$Copper_ug_cell <- (dat$ug_Copper/dat$cellsused)
+dat$Zinc_ug_cell <- (dat$ug_Zinc/dat$cellsused)
+
+# convert to pg/cell so the numbers are friendlier (multiply by 10^6)
+dat$Phosphorus_pg_cell <- (dat$Phosphorus_ug_cell*10^6)
+dat$Manganese_pg_cell <- (dat$Manganese_ug_cell*10^6)
+dat$Iron_pg_cell <- (dat$Iron_ug_cell*10^6)
+dat$Cobalt_pg_cell <- (dat$Cobalt_ug_cell*10^6)
+dat$Nickel_pg_cell <- (dat$Nickel_ug_cell*10^6)
+dat$Copper_pg_cell <- (dat$Copper_ug_cell*10^6)
+dat$Zinc_pg_cell <- (dat$Zinc_ug_cell*10^6)
+
+write.csv(dat, file="metal_calc_Routput.csv")
+```
+
+spit out bar graphs for each figure
+```{r}
+# subset out the metadata and pg metal/cell data
+dat1 <- dat[,c(1:5,44:50)]
+# rename the columns so they only include element name
+colnames(dat1) <- c("sampleID", "Species", "Ironconc", "Temp", "treatmentID", "Phosphorus", "Manganese", "Iron", "Cobalt", "Nickel", "Copper", "Zinc" )
+
+# make sure the factors are ready
+dat1$Temp <- as.factor(dat1$Temp)
+dat1$Ironconc <- as.factor(dat1$Ironconc)
+dat1$treatmentID <- as.factor(dat1$treatmentID)
+dat1$Species <- factor(dat1$Species, levels = c("min", "psyg"))
+levels(dat1$Species) <- c("B. minutum", "B. psygmophilum")
+dat1$Ironconc <- factor(dat1$Ironconc, levels =c("100", "50", "10"))
+levels(dat1$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+dat1$Temp <- factor(dat1$Temp, levels =c("26", "28", "30"))
+levels(dat1$Temp) <- c("26 °C", "28 °C", "30 °C")
+
+# melt the data
+melt <- reshape2::melt(dat1, id.vars = c("sampleID", "Species", "Ironconc", "Temp"), measure.vars = c("Iron", "Manganese", "Zinc", "Copper", "Cobalt", "Nickel", "Phosphorus"))
+
+# check for outliers (had to throw out a few funky Zn measurements)
+metalz <- function(mycolumn){
+  for (i in 1:length(unique(mycolumn))) {
+    mycolumn2 <- as.vector(unique(mycolumn))
+    fdata <- filter(melt, mycolumn %in% unique(mycolumn)[i])
+    myplot <- ggplot(data=fdata, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.7, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="pg cell-1", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+    print(myplot)
+  } }
+
+metalz(melt$variable)
+
+# ditch the phosphorus
+mmelt <- dplyr::filter(melt, variable != c("Phosphorus"))
+
+# make figure S4 (boxplot)
+S4 <- ggplot(data=mmelt, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.7, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="pg metal/ cell", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+S4
+ggsave("Fig_S4_metal_pg_cell.pdf", S4, width = 5, height = 8, units = "in")
+```
+
+spit out bivariate stats
+```{r}
+# creating a function to automate psyg/min comparisons for kw and average
+# this is only for the FIRe data, hplc data needs to be normalized to cell vol used.
+# useful websites: https://www.guru99.com/r-apply-sapply-tapply.html; http://rstudio-pubs-static.s3.amazonaws.com/1204_67621a69f1dc465f81de9716ec063742.html
+
+###
+#### BY SPECIES
+lapply(dat1[,6:12], function(x) kruskal.test(x~dat1$Species))
+by(dat1[,6:12], dat1$Species, summary)
+
+sw_test_results <- dat1 %>% 
+    gather(key = "variable_name", value = "value", Phosphorus:Zinc) %>% 
+    group_by(variable_name, Species)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+sw_test_results
+#write.table(metal_test_results, "metal_normality.txt", quote =F)
+
+############
+# filter by species
+min <- dplyr::filter(dat1, Species == "B. minutum")
+psyg <- dplyr::filter(dat1, Species == "B. psygmophilum")
+
+#######
+######## MIN TEMP
+lapply(min[,6:12], function(x) kruskal.test(x~min$Temp))
+by(min[,6:12], min$Temp, summary)
+lapply(min[,6:12], function(x) dunn.test(x = x, g= min$Temp, method = "bh", list = TRUE, table = FALSE, wrap = TRUE))
+
+sw_test_results_m_temp <- min %>% 
+    gather(key = "variable_name", value = "value", Phosphorus:Zinc) %>% 
+    group_by(variable_name, Temp)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+sw_test_results_m_temp
+
+######## MIN IRONCONC
+lapply(min[,6:12], function(x) kruskal.test(x~min$Ironconc))
+by(min[,6:12], min$Ironconc, summary)
+lapply(min[,6:12], function(x) dunn.test(x = x, g= min$Ironconc, method = "bh", list = TRUE, table = FALSE, wrap = TRUE))
+
+sw_test_results_m_fe <- min %>% 
+    gather(key = "variable_name", value = "value", Phosphorus:Zinc) %>% 
+    group_by(variable_name, Ironconc)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+sw_test_results_m_fe
+
+#######
+######## PSYG TEMP
+lapply(psyg[,6:12], function(x) kruskal.test(x~psyg$Temp))
+lapply(psyg[,6:12], function(x) dunn.test(x = x, g= psyg$Temp, method = "bh", list = TRUE, table = FALSE, wrap = TRUE))
+by(psyg[,6:12], psyg$Temp, summary)
+
+sw_test_results_p_temp <- psyg %>% 
+    gather(key = "variable_name", value = "value", Phosphorus:Zinc) %>% 
+    group_by(variable_name, Temp)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+sw_test_results_p_temp
+
+######## PSYG IRONCONC
+lapply(psyg[,6:12], function(x) kruskal.test(x~psyg$Ironconc))
+by(psyg[,6:12], psyg$Ironconc, summary)
+lapply(psyg[,6:12], function(x) dunn.test(x = x, g= psyg$Ironconc, method = "bh", list = TRUE, table = FALSE, wrap = TRUE))
+
+sw_test_results_p_fe <- psyg %>% 
+    gather(key = "variable_name", value = "value", Phosphorus:Zinc) %>% 
+    group_by(variable_name, Ironconc)  %>% 
+    do(tidy(shapiro.test(.$value))) %>% 
+    ungroup()
+sw_test_results_p_fe
+
+```
+
+
+normalize to Phos
+```{r}
+# create variables
+dat1$MnP <- (dat1$Manganese/dat1$Phosphorus)
+dat1$FeP <- (dat1$Iron/dat1$Phosphorus)
+dat1$CoP <- (dat1$Cobalt/dat1$Phosphorus)
+dat1$NiP <- (dat1$Nickel/dat1$Phosphorus)
+dat1$CuP <- (dat1$Copper/dat1$Phosphorus)
+dat1$ZnP <- (dat1$Zinc/dat1$Phosphorus)
+
+# melt the data
+meltP <- reshape2::melt(dat1, id.vars = c("sampleID", "Species", "Ironconc", "Temp", "treatmentID"), measure.vars = c("MnP", "FeP", "CoP", "NiP", "CuP", "ZnP"))
+
+# spits out figs for each ratio
+metalz_to_P <- function(mycolumn){
+  for (i in 1:length(unique(mycolumn))) {
+    mycolumn2 <- as.vector(unique(mycolumn))
+    fdata <- filter(meltP, mycolumn %in% unique(mycolumn)[i])
+    myplot <- ggplot(data=fdata, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.7, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="metal/P", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+    print(myplot)
+  } }
+
+metalz_to_P(meltP$variable)
+
+# remove outliers
+#write.csv(dat1, "metalP.csv")
+#meow <- read.csv("metalP.csv")
+
+#meltP <- reshape2::melt(meow, id.vars = c("sampleID", "Species", "Ironconc", "Temp", "treatmentID"), measure.vars = c("FeP","MnP", "ZnP", "CuP","CoP", "NiP"))
+
+meltP$Ironconc <- factor(meltP$Ironconc, levels =c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'"))
+levels(meltP$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+
+# make figure S5 (boxplot)
+S5 <- ggplot(data=meltP, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.7, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="metal/P", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+S5
+ggsave("Fig_S5_metalP.pdf", S5, width = 5, height = 8, units = "in")
+```
+
+multivariate stats (pg/cell)
+```{r}
+# make an object for the dependent variables (the trace metals)
+dependent.vars <- dat1[,7:12]
+dependent.vars <- as.matrix(dependent.vars)
+
+# make a na matrix of the data
+na <- na.omit(dat1)
+
+#### LDA/DFA time
+# SPECIES
+rh <-lda(dat1$Species ~ dependent.vars,tol = 1.0e-25, CV = F)
+rh # this gives you info on priors ($prior), coefficients of linear discriminants ($scaling), group means ($means)
+rh$counts # this tells you how many in each independent group
+rh$svd # the singular values (svd) that gives the ratio of the between- and within-group standard deviations on the linear discriminant variables.
+x <- rh$svd
+#pdf("brev_vol_dfa.pdf")
+plot(rh, abbrev = 3, dimen = 2) # this plots the 2st to linear discriminants
+dev.off()
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(dat1$Species ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Species, rh_dfa$class)
+#pdf("brev_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Species",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8)
+dev.off()
+
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = dat1$Species, col = "grey")
+##################### 
+# make objects for min and psyg
+m <- dat1 %>% filter(Species %in% c("B. minutum"))
+psy <- dat1 %>% filter(Species %in% c("B. psygmophilum"))
+
+##############
+##################### 
+# only minutum
+##################### 
+##############
+
+# make a matrix of dependent variables
+dependent.vars <- m[,7:12]
+dependent.vars <- as.matrix(dependent.vars)
+# make a na matrix of the data
+na <- na.omit(m)
+#### LDA/DFA time
+# IRON CONCENTRATION
+rh <-lda(m$Ironconc ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("min_dfa_fe_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(m$Ironconc ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Ironconc, rh_dfa$class)
+#pdf("min_mos_fe_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Iron concentration",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = m$Ironconc, col = "grey")
+
+# TEMPERATURE TREATMENT
+rh <-lda(m$Temp ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("min_dfa_temp_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2,
+     cex = 1.3, 
+     cex.axis = 1.5,
+     cex.lab = 1.6)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(m$Temp ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Temp, rh_dfa$class)
+#pdf("min_temp_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Temperature",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = m$Temp, col = "grey")
+# make a less ugly scatterplot of LDA, helpful website: https://rpubs.com/ifn1411/LDA
+# useful for ellipses https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+# wrangle the data
+newdata1 <- data.frame(Temp = na[,4], Ironconc = na[,3],lda= lda.val$x)
+newdata1$Temp <- as.factor(newdata1$Temp)
+newdata1$Ironconc <- as.factor(newdata1$Ironconc)
+
+##############
+##################### 
+# only psygmophilum
+##################### 
+##############
+# make a matrix of dependent variables
+dependent.vars <- psy[,7:12]
+dependent.vars <- as.matrix(dependent.vars)
+# make a na matrix of the data
+na <- na.omit(psy)
+###
+
+# LDA/DFA time
+# IRON CONCENTRATION
+rh <-lda(psy$Ironconc ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("psyg_dfa_fe_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2)
+dev.off()
+
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(psy$Ironconc ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Ironconc, rh_dfa$class)
+#pdf("psyd_mos_fe_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Iron concentration",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = psy$Ironconc, col = "grey")
+
+# TEMPERATURE TREATMENT
+rh <-lda(psy$Temp ~ dependent.vars, CV = F, tol = 1.0e-25)
+rh 
+rh$counts
+rh$svd
+x <- rh$svd
+#pdf("psyg_temp_dfa_vol.pdf")
+plot(rh, abbrev = 3, dimen = 2,
+     cex = 1.3, 
+     cex.axis = 1.5,
+     cex.lab = 1.6)
+dev.off()
+prop = x^2/sum(x^2)
+prop
+
+# create a table to see how well the dfa categorized things
+# switch CV = T
+rh_dfa <- lda(psy$Temp ~ dependent.vars, CV=T, tol = 1.0e-25)
+t <- table(na$Temp, rh_dfa$class)
+#pdf("psyg_temp_mos_vol.pdf")
+mosaicplot(t, color = T,
+           main = "Temperature",
+           xlab = "Actual",
+           ylab = "Predicted",
+           las = 0.8,
+           off = 10)
+dev.off()
+p <- diag(prop.table(t,1))
+total <- cbind(p,t)
+total
+
+# stacked histogram of predicted values
+lda.val <- predict(rh)
+ldahist(lda.val$x[,1], g = psy$Temp, col = "grey")
+
+# make a less ugly scatterplot of LDA, helpful website: https://rpubs.com/ifn1411/LDA
+# useful for ellipses https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+# wrangle the data
+newdata <- data.frame(Temp = na[,4], Ironconc = na[,3],lda= lda.val$x)
+newdata$Temp <- as.factor(newdata$Temp)
+newdata$Ironconc <- as.factor(newdata$Ironconc)
+
+#### facet this plot (instead of making one scatter plot for bmin and one for bspyg). faceting makes life better
+# add a species column for faceting. newdata1 is Bmin, newdata is Bpsyg. *headdesk*
+newdata1$Species <- c("Breviolum minutum")
+newdata$Species <- c("Breviolum psygmophilum")
+# rbind them together
+bothspp <- rbind(newdata, newdata1)
+
+# create a color blind palette
+cols <-c( "26 °C" = "#0072B2", "28 °C" = "#999999", "30 °C" = "#D55E00")
+labs <- c("26 °C", "28 °C", "30 °C")
+
+### make figure 3!
+both <- ggplot(bothspp) + 
+  geom_point(aes(bothspp$lda.LD1, bothspp$lda.LD2, 
+                 color = bothspp$Temp, 
+                 shape = bothspp$Ironconc), 
+                 size = 3.5) + 
+  theme_bw() +
+  facet_wrap(~Species) +
+  labs(x = "LD1", y = "LD2") +
+  scale_color_manual(values = cols, breaks = c("26 °C", "28 °C", "30 °C"), name = "Temperature") +
+  scale_shape_manual(values = c(19,15,17), breaks =c("50 pM Fe'", "250 pM Fe'", "500 pM Fe'"),
+                name = "Bioavailable Iron \nConcentration (pM Fe')") +
+  theme(axis.text = element_text(size=12),
+        axis.title = element_text(size=12, face = "bold"),
+        legend.text = element_text(size=10),
+        panel.grid = element_blank(),
+        legend.title = element_text(size=10, face="bold"), legend.title.align = 0,
+        strip.text = element_text(size = 12, face = "bold.italic")) +
+  stat_ellipse(geom = "polygon", type = "t", alpha = 0.125, show.legend = FALSE,
+               aes(bothspp$lda.LD1, bothspp$lda.LD2, fill = bothspp$Temp)) +  
+               scale_fill_manual(values = cols) 
+both
+print(both)
+save_plot("Fig_3_multivar.pdf",both, base_aspect_ratio = 1.9)
+
+```
+
+
+###############
+###############
+CODE GRAVEYARD
+###############
+multiply by vol per cell
+```{r eval=FALSE, include=FALSE}
+# read in the volpercell
+vpc <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx", sheet ="vol")
+# join them
+both <- merge(dat1, vpc, by = "sampleID")
+
+# create variables
+both$Mn_CV <- (both$Manganese*both$VolPerCell)
+both$Fe_CV <- (both$Iron*both$VolPerCell)
+both$Co_CV <- (both$Cobalt*both$VolPerCell)
+both$Ni_CV <- (both$Nickel*both$VolPerCell)
+both$Cu_CV <- (both$Copper*both$VolPerCell)
+both$Zn_CV <- (both$Zinc*both$VolPerCell)
+both$P_CV <- (both$Phosphorus*both$VolPerCell)
+
+# melt the data
+meltvpc <- reshape2::melt(both, id.vars = c("sampleID", "Species", "Ironconc", "Temp"), measure.vars = c("Mn_CV", "Fe_CV", "Co_CV", "Ni_CV", "Cu_CV", "Zn_CV", "P_CV"))
+
+# spits out figs for each ratio
+metalz_to_vpc <- function(mycolumn){
+  for (i in 1:length(unique(mycolumn))) {
+    mycolumn2 <- as.vector(unique(mycolumn))
+    fdata <- filter(meltvpc, mycolumn %in% unique(mycolumn)[i])
+    myplot <- ggplot(data=fdata, aes(x=Ironconc, y=value, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.5, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="(pg/cell)(vol/cell)", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "italic"),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(variable~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("B. minutum", "B. psygmophilum"), name = "Species")
+    print(myplot)
+  } }
+
+metalz_to_vpc(meltvpc$variable)
+
+```
+
