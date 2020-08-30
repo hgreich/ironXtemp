@@ -274,12 +274,6 @@ metalz_to_P <- function(mycolumn){
 
 metalz_to_P(meltP$variable)
 
-# remove outliers
-#write.csv(dat1, "metalP.csv")
-#meow <- read.csv("metalP.csv")
-
-#meltP <- reshape2::melt(meow, id.vars = c("sampleID", "Species", "Ironconc", "Temp", "treatmentID"), measure.vars = c("FeP","MnP", "ZnP", "CuP","CoP", "NiP"))
-
 meltP$Ironconc <- factor(meltP$Ironconc, levels =c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'"))
 levels(meltP$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
 
