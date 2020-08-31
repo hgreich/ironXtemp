@@ -31,7 +31,7 @@ But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Diffe
 
 **Figs_2_S2_fire_stats_figs.Rmd** Rmarkdown file for figures involving photophys - figs 2 (and corresponding stats). Both stats and figures call upon "fire_results_git.xlsx".
 
-**Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_data_git.xlsx". 
+**Figs_3_S4-S6_metal_stats_figs.Rmd** Rmarkdown file for figures involving metals (and phosphorus) - figs 3, S4, S5, S6 (and corresponding stats). Both stats and figs call upon "metal_data_git.xlsx". Please note that the units for fig S5 metal:phosphorus ratios are from pg metal/ cell and pg P/ cell data. These are slightly different from the ratios in Reich et al 2020 coral reefs (mmol metal: mol P) but show the same patterns (Bpsyg has higher metal:P than Bmin).
 
 **Fig_S1_pH.Rmd** Rmarkdown file for figure S1 (pH for Breviolum spp at various [Fe] & temperatures). Calls upon the "pH" sheet in "cell_density.xlsx"
 
