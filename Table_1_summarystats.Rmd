@@ -1,0 +1,170 @@
+---
+title: "Table_1_summarystats"
+author: "Hannah Reich"
+date: "8/30/2020"
+output: html_document
+---
+
+This is a Rmarkdown file that creates a mega table of all summary stats
+```{r}
+# set the working directory
+setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/unit_corrections_08212020/")
+
+# load packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(tidyr)
+library(data.table)
+library(tables) # for fancy tables
+
+# read in all of the data
+cn <- read_excel("pocpon_data_git.xlsx") # carbon and nitrogen
+mp <- read_excel("metal_data_git.xlsx", sheet = "metal_calc_Routput") # metals and phosphorus
+fire <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/fire_results_git.xlsx", sheet = "data") # photophysiology from FIRe
+lipid <- read_excel("~/Desktop/PhD/summer 2018/culture_lipids/HR_cultures_lipid quant.xlsx", sheet = "for_R_total") # lipid
+chla <- read_excel("chla_data_git.xlsx", sheet = "calc_Routput") # chlorophyll a
+sg <- read_excel("~/Desktop/PhD/chapters/chapter 4 - temp treatments/for_coauthors_v1/data_code/cell_density.xlsx",
+                     sheet = "spgrowth_r") # specific growth
+
+## make sure column names and treatment names match before the merge. remove unnecessary columns
+
+# carbon and nitrogen
+cn1 <- cn[,2:8]
+cn1$CN_ratio <- (cn1$POC_pg_cell/cn1$PON_pg_cell)
+
+# metals and phosphorus
+mp1 <- mp[,c(2:6,45:51)]
+mp1$FeP <- (mp1$Iron_pg_cell/mp1$Phosphorus_pg_cell)
+# average by sampleID because of tech reps
+# this website helped: https://nicercode.github.io/guides/repeating-things/
+mp2 <- aggregate(cbind(Iron_pg_cell, Cobalt_pg_cell, Copper_pg_cell, Manganese_pg_cell, Nickel_pg_cell, Zinc_pg_cell, Phosphorus_pg_cell, FeP) ~ sampleID, mp1, mean)
+
+# fire photophys
+fire1 <- fire[,c(1:5,12:15)]
+colnames(fire1)[3] <- "Species"
+
+# lipid
+lipid1 <- lipid[,c(1,3:7)]
+colnames(lipid1)[6] <- "treatmentID"
+colnames(lipid1)[5] <- "mg_lipid_cell"
+
+# chla
+chla1 <- chla[,c(1:5,13)]
+colnames(chla1)[3] <- "Species"
+
+# specific growth
+sg1 <- sg[,c(1:5,8)]
+colnames(sg1)[1] <- "sampleID"
+colnames(sg1)[3] <- "Species"
+colnames(sg1)[4] <- "Ironconc"
+colnames(sg1)[5] <- "Temp"
+colnames(sg1)[6] <- "Specific_Growth"
+sg1$Temp <- as.factor(sg1$Temp)
+sg1$Temp <- factor(sg1$Temp, levels =c("t26", "t28", "t30"))
+levels(sg1$Temp) <- c("26", "28", "30")
+
+# only keep sampleID and response variable for easy merging
+chla2 <- chla1[,c(1,6)]
+lipid2 <- lipid1[,c(1,5)]
+fire2 <- fire1[,c(1,6:9)]
+cn2 <- cn1[,c(1:3,8)]
+
+# bind the dataframes together (this is pretty janky and lazy)
+dat1 <- merge(sg1, chla2, by = "sampleID", all = FALSE)
+dat2 <- merge(dat1, lipid2, by = "sampleID")
+dat3 <- merge(dat2, fire2, by = "sampleID")
+dat4 <- merge(dat3, cn2, by = "sampleID")
+EVERYBODY <- merge(dat4, mp2, by = "sampleID")
+
+# calculate C/P and N/P ratios
+EVERYBODY$CP_ratio <- (EVERYBODY$POC_pg_cell/EVERYBODY$Phosphorus_pg_cell)
+EVERYBODY$NP_ratio <- (EVERYBODY$PON_pg_cell/EVERYBODY$Phosphorus_pg_cell)
+
+# update factor levels so they are pub ready and match the figures
+EVERYBODY$Species <- factor(EVERYBODY$Species, levels = c("min", "psyg"))
+levels(EVERYBODY$Species) <- c("B. minutum", "B. psygmophilum")
+EVERYBODY$Ironconc <- factor(EVERYBODY$Ironconc, levels =c("100", "50", "10"))
+levels(EVERYBODY$Ironconc) <- c("500 pM Fe'", "250 pM Fe'", "50 pM Fe'")
+EVERYBODY$Temp <- factor(EVERYBODY$Temp, levels =c("26", "28", "30"))
+levels(EVERYBODY$Temp) <- c("26 °C", "28 °C", "30 °C")
+
+EVERYBODY$Temp <- as.factor(EVERYBODY$Temp)
+EVERYBODY$Ironconc <- as.factor(EVERYBODY$Ironconc)
+EVERYBODY$Species <- as.factor(EVERYBODY$Species)
+
+# make the fancy table with the tabular() function from the tables package
+stderr <- function(x) sd(x)/sqrt(length(x)) # std error function
+Mean <- function(x) base::mean(x, na.rm=TRUE) # mean function. can handle NAs. regular tabular function throws out all values if any NAs are present
+
+tab <- tabular(Factor(Temp)*Factor(Ironconc)*(Species+1) ~  Format(digits=4)* All(EVERYBODY)*(mean + sd), data=EVERYBODY)
+tab <- tabular(Factor(Temp)*Factor(Ironconc)*(Species)(mean + sd) ~ 1   Format(digits=4)* All(EVERYBODY), data=EVERYBODY)
+
+write.csv.tabular(tab, file = "all_averages.csv")
+
+
+```
+
+here is a chunk for extra drafty boxplots
+```{r}
+# make C/N boxplot
+EVERYBODY$Temp <- as.factor(EVERYBODY$Temp)
+EVERYBODY$Ironconc <- as.factor(EVERYBODY$Ironconc)
+
+# C/N ratio fig
+cn_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=CN_ratio, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="C/N", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(face = "italic", size=8),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
+cn_ratio_fig
+
+# C/P ratio fig
+cp_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=CP_ratio, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="C/P", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(face = "italic", size=8),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
+cp_ratio_fig
+
+# N/P ratio fig
+np_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=NP_ratio, fill=Species, color= Species)) +
+  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
+  theme_bw() +
+  labs(y="N/P", x=element_blank(), title = element_blank()) +
+  theme(panel.grid = element_blank(),
+        strip.text.x = element_text(face = "bold"),
+        strip.text.y = element_text(face = "bold"),
+        legend.title = element_text(face = "bold", size=8),
+        legend.text = element_text(face = "italic", size=8),
+        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom") +
+  facet_grid(~Temp, scales = "free_y") +
+  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
+  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
+np_ratio_fig
+
+```
+
