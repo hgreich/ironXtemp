@@ -6,6 +6,9 @@ output: html_document
 ---
 
 This is a Rmarkdown file that creates a mega table of all summary stats
+
+NOTE: the final table in the manuscript "only" includes specific growth, C, N, P, and metals (for space reasons). Also the units for the metals were converted to fg metal/ cell so the numbers were friendlier to look at.
+
 ```{r}
 # set the working directory
 setwd("~/Desktop/PhD/chapters/chapter 4 - temp treatments/unit_corrections_08212020/")
@@ -106,65 +109,4 @@ write.csv.tabular(tab, file = "all_averages.csv")
 
 ```
 
-here is a chunk for extra drafty boxplots
-```{r}
-# make C/N boxplot
-EVERYBODY$Temp <- as.factor(EVERYBODY$Temp)
-EVERYBODY$Ironconc <- as.factor(EVERYBODY$Ironconc)
-
-# C/N ratio fig
-cn_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=CN_ratio, fill=Species, color= Species)) +
-  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  labs(y="C/N", x=element_blank(), title = element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold"),
-        strip.text.y = element_text(face = "bold"),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(face = "italic", size=8),
-        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
-        axis.title = element_text(face = "bold"),
-        legend.position = "bottom") +
-  facet_grid(~Temp, scales = "free_y") +
-  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
-  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
-cn_ratio_fig
-
-# C/P ratio fig
-cp_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=CP_ratio, fill=Species, color= Species)) +
-  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  labs(y="C/P", x=element_blank(), title = element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold"),
-        strip.text.y = element_text(face = "bold"),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(face = "italic", size=8),
-        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
-        axis.title = element_text(face = "bold"),
-        legend.position = "bottom") +
-  facet_grid(~Temp, scales = "free_y") +
-  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
-  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
-cp_ratio_fig
-
-# N/P ratio fig
-np_ratio_fig <- ggplot(data=EVERYBODY, aes(x=Ironconc, y=NP_ratio, fill=Species, color= Species)) +
-  geom_boxplot(alpha = 0.4, varwidth = FALSE, position = position_dodge(1, preserve = "single")) +
-  theme_bw() +
-  labs(y="N/P", x=element_blank(), title = element_blank()) +
-  theme(panel.grid = element_blank(),
-        strip.text.x = element_text(face = "bold"),
-        strip.text.y = element_text(face = "bold"),
-        legend.title = element_text(face = "bold", size=8),
-        legend.text = element_text(face = "italic", size=8),
-        axis.text.x = element_text(angle=20, vjust=1, hjust=1, size = 8),
-        axis.title = element_text(face = "bold"),
-        legend.position = "bottom") +
-  facet_grid(~Temp, scales = "free_y") +
-  scale_color_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species") +
-  scale_fill_manual(values = c("grey", "black"), breaks = c("min", "psyg"), labels = c("B. minutum", "B. psygmophilum"), name = "Species")
-np_ratio_fig
-
-```
 
