@@ -1,6 +1,6 @@
 # ironXtemp
 
-## Welcome to the github page for the paper "Iron availability modulates the response of symbiotic dinoflagellates to heat stress." Reich et al, in revision at Journal of Phycology
+## Welcome to the github page for the paper "Iron availability modulates the response of symbiotic dinoflagellates to heat stress." Reich et al, In Press at Journal of Phycology
 
 But first! Check out the prequel "Endosymbiotic dinoflagellates pump iron: Differences in iron and other trace metal needs among the Symbiodiniaceae" here: https://link.springer.com/article/10.1007/s00338-020-01911-z
 
