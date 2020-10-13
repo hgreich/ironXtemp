@@ -4,7 +4,8 @@
 
 But first! Check out the **prequel** "Endosymbiotic dinoflagellates pump iron: Differences in iron and other trace metal needs among the Symbiodiniaceae" here: https://link.springer.com/article/10.1007/s00338-020-01911-z
 
-Read the **sequel** online here: https://onlinelibrary.wiley.com/doi/abs/10.1111/jpy.13078 
+Read the **sequel** online here: https://onlinelibrary.wiley.com/doi/abs/10.1111/jpy.13078  
+
 DOI: 10.1111/jpy.13078
 
 ### Below, please a brief overview of each file and the abstract. Feel free to reach out w/ questions anytime via email: hgreich16 [at] gmail [dot] com
